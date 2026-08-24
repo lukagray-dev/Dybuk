@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480">
+  <defs>
+    <linearGradient id="dybukGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="25%" stop-color="#E2E8F0" />
+      <stop offset="60%" stop-color="#94A3B8" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+  </defs>
+  <path d="M240 0v240h240A240 240 0 0 0 240 0ZM240 480h240V240a240 240 0 0 0-240 240ZM0 240a240 240 0 0 0 240 240V240H0ZM0 240V0h240A240 240 0 0 1 0 240Z" fill="url(#dybukGrad)" />
+</svg>

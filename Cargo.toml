@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "dybuk",
+    "desktop/src-tauri",
+]
+resolver = "2"

@@ -1,0 +1,168 @@
+# ==============================================================================
+# Dybuk Repository .gitignore
+# Single, centralized gitignore covering Rust, Tauri, Web/TS, Android, iOS, & OS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Rust & Cargo
+# ------------------------------------------------------------------------------
+target/
+**/target/
+**/*.rs.bk
+*.cargo-ok
+.cargo/config.local
+
+# ------------------------------------------------------------------------------
+# 2. Tauri v2 (Desktop)
+# ------------------------------------------------------------------------------
+**/src-tauri/gen/schemas/
+**/src-tauri/gen/android/
+**/src-tauri/gen/apple/
+*.msi
+*.exe
+*.dmg
+*.deb
+*.appimage
+*.flatpak
+
+# ------------------------------------------------------------------------------
+# 3. Node.js, Frontend & TypeScript
+# ------------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+.yarn/cache/
+.turbo/
+.cache/
+
+# Compiled frontend output
+dist/
+dist-ssr/
+build/
+out/
+desktop/src/js/
+
+# ------------------------------------------------------------------------------
+# 4. Android (Native Kotlin & Gradle & UniFFI)
+# ------------------------------------------------------------------------------
+.gradle/
+**/mobile/android/.gradle/
+**/mobile/android/build/
+**/mobile/android/**/build/
+**/mobile/android/local.properties
+**/mobile/android/.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Android Profiling & Captures
+captures/
+.externalNativeBuild/
+
+# ------------------------------------------------------------------------------
+# 5. iOS (Native Swift & Xcode & UniFFI)
+# ------------------------------------------------------------------------------
+# Xcode user state & derived data
+DerivedData/
+**/DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+*.xcscmblueprint
+
+# Xcode project files (keep project definitions, ignore personal state)
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+!*.xcworkspace/xcshareddata/
+
+# Swift Package Manager & CocoaPods
+.build/
+**/Pods/
+
+# App packages & symbols
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ------------------------------------------------------------------------------
+# 6. Certificates, Keys & Secrets
+# ------------------------------------------------------------------------------
+*.jks
+*.keystore
+*.p12
+*.cer
+*.mobileprovision
+*.key
+*.pem
+.env
+.env.local
+.env.*.local
+
+# ------------------------------------------------------------------------------
+# 7. Operating System Artifacts
+# ------------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ------------------------------------------------------------------------------
+# 8. IDEs & Editors
+# ------------------------------------------------------------------------------
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio / Windows
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Vim / Emacs / Sublime
+*.swp
+*.swo
+*~
+.#*
+#*#
+*.sublime-project
+*.sublime-workspace
+
+# Temporary
+.temp/

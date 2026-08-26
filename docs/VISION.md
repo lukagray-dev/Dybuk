@@ -60,8 +60,6 @@ These are things Dybuk will **not** pursue. They are not "someday" features — 
 - **Cloud storage or sync.** Files live on the local filesystem. If users want sync, they can put their files in a Dropbox/Syncthing folder. Dybuk will not build this.
 - **Plugin or extension ecosystem.** A plugin system introduces attack surface, maintenance burden, and configuration complexity. Dybuk ships complete.
 - **IDE or development features.** No LSP integration, no terminal, no git integration, no project management. Dybuk is for prose, not code.
-- **Rich media embedding.** No inline images, no embedded videos, no audio clips. Markdown image syntax is supported in the source, but Dybuk's focus is text.
-- **Multi-document tabs or workspaces.** One file. One window. This is the design.
 
 ## Competitive Landscape
 

@@ -4,10 +4,262 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dybuk</title>
-    <link rel="stylesheet" href="./css/main.css" />
-    <script type="module" src="./js/main.js" defer></script>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/shared/global.css" />
+    <link rel="stylesheet" href="css/titlebar/titlebar.css" />
+    <link rel="stylesheet" href="css/titlebar/menu.css" />
+    <link rel="stylesheet" href="css/left-sidebar/sidebar.css" />
+    <link rel="stylesheet" href="css/main-content/topbar/topbar.css" />
+    <link rel="stylesheet" href="css/main-content/canvas.css" />
+    <!-- Scripts -->
+    <script type="module" src="js/main.js" defer></script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Custom Native Titlebar -->
+      <header id="app-titlebar" class="titlebar">
+        <!-- Left Chrome Section: Logo + Nav Controls + Menus -->
+        <div class="titlebar-left">
+          <!-- Brand Logo and Recents/Sidebar Toggle -->
+          <div id="brand-container" class="brand-container" title="Toggle History">
+            <img id="brand-logo-img" class="brand-logo-img" src="assets/logo.svg" alt="Dybuk Logo" />
+            <span id="brand-toggle-icon" class="brand-toggle-icon"></span>
+          </div>
+
+          <!-- Menus (Files, View, Window, Help) -->
+          <nav class="titlebar-menus">
+            <!-- Files Menu -->
+            <div class="menu-container">
+              <button class="menu-trigger" data-menu="files">Files</button>
+              <div class="dropdown-menu" data-menu="files">
+                <div id="menu-item-new-doc" class="dropdown-item">
+                  <span>New Document</span>
+                  <span class="dropdown-item-shortcut">Ctrl+N</span>
+                </div>
+                <div id="menu-item-open-doc" class="dropdown-item">
+                  <span>Open Document</span>
+                  <span class="dropdown-item-shortcut">Ctrl+O</span>
+                </div>
+                <div id="menu-item-save" class="dropdown-item">
+                  <span>Save</span>
+                  <span class="dropdown-item-shortcut">Ctrl+S</span>
+                </div>
+                <div id="menu-item-save-as" class="dropdown-item">
+                  <span>Save As...</span>
+                  <span class="dropdown-item-shortcut">Ctrl+Shift+S</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div id="menu-item-lock" class="dropdown-item">
+                  <span>Lock Vault</span>
+                  <span class="dropdown-item-shortcut">Ctrl+L</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div id="menu-item-settings" class="dropdown-item">
+                  <span>Settings</span>
+                  <span class="dropdown-item-shortcut">Ctrl+,</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- View Menu -->
+            <div class="menu-container">
+              <button class="menu-trigger" data-menu="view">View</button>
+              <div class="dropdown-menu" data-menu="view">
+                <div id="menu-item-toggle-recents" class="dropdown-item">
+                  <span>Toggle Recent Files</span>
+                  <span class="dropdown-item-shortcut">Ctrl+B</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Window Menu -->
+            <div class="menu-container">
+              <button class="menu-trigger" data-menu="window">Window</button>
+              <div class="dropdown-menu" data-menu="window">
+                <div id="menu-item-close-window" class="dropdown-item">
+                  <span>Close Window</span>
+                  <span class="dropdown-item-shortcut">Ctrl+W</span>
+                </div>
+                <div id="menu-item-exit" class="dropdown-item">
+                  <span>Exit</span>
+                  <span class="dropdown-item-shortcut">Ctrl+Q</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Help Menu -->
+            <div class="menu-container">
+              <button class="menu-trigger" data-menu="help">Help</button>
+              <div class="dropdown-menu" data-menu="help">
+                <div id="menu-item-documentation" class="dropdown-item">
+                  <span>Documentation</span>
+                </div>
+                <div id="menu-item-report-bug" class="dropdown-item">
+                  <span>Report Bug</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div id="menu-item-follow-creator" class="dropdown-item">
+                  <span>Follow Creator</span>
+                </div>
+                <div id="menu-item-see-repo" class="dropdown-item">
+                  <span>Repository</span>
+                </div>
+              </div>
+            </div>
+          </nav>
+        </div>
+
+        <!-- Draggable Center Spacer Region -->
+        <div class="titlebar-drag-spacer"></div>
+
+        <!-- Right Window Actions: Minimize / Maximize / Close -->
+        <div class="titlebar-actions">
+          <button id="btn-minimize" class="action-btn" title="Minimize">
+            <span class="ui-icon icon-minimize"></span>
+          </button>
+          <button id="btn-maximize" class="action-btn" title="Maximize">
+            <span id="icon-max-restore" class="ui-icon icon-maximize"></span>
+          </button>
+          <button id="btn-close" class="action-btn close-btn" title="Close">
+            <span class="ui-icon icon-close"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Viewport: Left Sidebar + Central Content Pane -->
+      <main id="main-viewport">
+        <!-- Left Sidebar -->
+        <aside id="left-sidebar" class="left-sidebar">
+          <!-- Top Actions -->
+          <div class="sidebar-top">
+            <!-- New Document Container with Dropdown -->
+            <div class="new-doc-container">
+              <button id="btn-new-doc" class="btn-new-doc">
+                <div class="btn-new-doc-left">
+                  <span class="ui-icon icon-sidebar-new-doc"></span>
+                  <span>New document</span>
+                </div>
+                <span class="key-badge">Ctrl+N</span>
+              </button>
+              <div id="new-doc-dropdown" class="dropdown-menu new-doc-dropdown">
+                <div class="dropdown-item new-doc-option" data-type="md">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="ui-icon icon-doc-markdown"></span>
+                    <span>Markdown (.md)</span>
+                  </div>
+                </div>
+                <div class="dropdown-item new-doc-option" data-type="dybuk">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="ui-icon icon-doc-dybuk"></span>
+                    <span>Dybuk Vault (.dybuk)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="sidebar-search-container">
+              <span class="ui-icon icon-sidebar-search"></span>
+              <input id="sidebar-search-input" class="sidebar-search-input" type="text"
+                placeholder="Search documents..." />
+              <button id="btn-search-clear" class="btn-search-clear" title="Clear search">✕</button>
+            </div>
+          </div>
+
+          <!-- Scrollable Middle Section -->
+          <div class="sidebar-scroll-content">
+            <!-- Markdown Category Section -->
+            <section id="section-markdown" class="sidebar-section">
+              <div class="section-header" id="header-markdown">
+                <div class="section-header-left">
+                  <span class="ui-icon icon-sidebar-chevron-down chevron-icon"></span>
+                  <span class="ui-icon icon-doc-markdown"></span>
+                  <span>Markdown</span>
+                  <span id="markdown-count-badge" class="count-pill">0</span>
+                </div>
+              </div>
+              <div id="markdown-items-container" class="section-items"></div>
+            </section>
+
+            <!-- Dybuk Vault Category Section -->
+            <section id="section-dybuk" class="sidebar-section">
+              <div class="section-header" id="header-dybuk">
+                <div class="section-header-left">
+                  <span class="ui-icon icon-sidebar-chevron-down chevron-icon"></span>
+                  <span class="ui-icon icon-doc-dybuk"></span>
+                  <span>Dybuk</span>
+                  <span id="dybuk-count-badge" class="count-pill">0</span>
+                </div>
+              </div>
+              <div id="dybuk-items-container" class="section-items"></div>
+            </section>
+          </div>
+
+          <!-- Bottom Section -->
+          <div class="sidebar-bottom">
+            <button id="btn-sidebar-settings" class="btn-sidebar-settings">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="ui-icon icon-sidebar-settings"></span>
+                <span>Settings</span>
+              </div>
+              <span class="key-badge">Ctrl+,</span>
+            </button>
+          </div>
+
+          <!-- Right Resize Handle -->
+          <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </aside>
+
+        <!-- Main Content Area: Topbar + Writing Canvas -->
+        <section id="content-pane" class="main-content-layout">
+          <!-- Main Content Topbar -->
+          <header id="main-content-topbar" class="main-topbar">
+            <!-- Left: Document Title & Badges -->
+            <div class="topbar-left-section">
+              <div class="topbar-doc-title-wrapper">
+                <h2 id="topbar-doc-title" class="topbar-doc-title">Untitled</h2>
+                <span id="topbar-dirty-indicator" class="topbar-dirty-indicator" title="Unsaved changes">•</span>
+              </div>
+              <span id="topbar-type-badge" class="topbar-type-badge">Markdown</span>
+            </div>
+
+            <!-- Right: Stats & Action Buttons -->
+            <div class="topbar-right-section">
+              <span id="topbar-word-count" class="topbar-stats-pill">0 words • 0 chars</span>
+              <button id="topbar-btn-save" class="topbar-btn primary" title="Save document (Ctrl+S)">
+                <span>Save</span>
+              </button>
+              <button id="topbar-btn-lock" class="topbar-btn" title="Lock vault (Ctrl+L)" style="display: none;">
+                <span>Lock</span>
+              </button>
+            </div>
+          </header>
+
+          <!-- Writing Canvas Scroll Area -->
+          <div id="editor-scroll-pane" class="editor-scroll-pane" style="display: none;">
+            <div class="editor-canvas-wrapper">
+              <textarea id="editor-textarea" class="editor-textarea" placeholder="Start writing your thoughts..."></textarea>
+            </div>
+          </div>
+
+          <!-- Empty State / Welcome Screen when no document is active -->
+          <div id="editor-empty-state" class="editor-empty-state">
+            <img class="empty-state-logo" src="assets/logo.svg" alt="Dybuk Logo" />
+            <h3 class="empty-state-title">Put your thoughts in a box</h3>
+            <p class="empty-state-desc">Select an existing document from the sidebar, or create a new one to begin writing.</p>
+            <div class="empty-state-shortcuts">
+              <div class="empty-state-shortcut-item">
+                <span class="key-badge">Ctrl+N</span>
+                <span>New document</span>
+              </div>
+              <div class="empty-state-shortcut-item">
+                <span class="key-badge">Ctrl+B</span>
+                <span>Toggle sidebar</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   </body>
 </html>

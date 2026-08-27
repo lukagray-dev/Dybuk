@@ -13,6 +13,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build.workspace = true
 
 [dependencies]
+chrono.workspace = true
+dybuk.workspace = true
 tauri.workspace = true
 tauri-plugin-opener.workspace = true
 serde.workspace = true

@@ -1,0 +1,131 @@
+/* Main Content Topbar Styling for Dybuk */
+@import '../../shared/tokens.css';
+
+.main-topbar {
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background-color: var(--window-background);
+  border-bottom: 1px solid var(--dropdown-border);
+  position: relative;
+  z-index: 15;
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+}
+
+/* Left Title & Status Section */
+.topbar-left-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.topbar-doc-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.topbar-doc-title {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+
+.topbar-dirty-indicator {
+  display: none;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.topbar-dirty-indicator.visible {
+  display: inline-block;
+}
+
+.topbar-type-badge {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-family: var(--mono-font-family);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topbar-type-badge.dybuk {
+  background-color: rgba(0, 122, 204, 0.12);
+  border-color: rgba(0, 122, 204, 0.25);
+  color: #60c5ff;
+}
+
+/* Right Actions Area */
+.topbar-right-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.topbar-stats-pill {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono-font-family);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.topbar-btn {
+  height: 28px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: var(--font-family);
+  font-weight: 500;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  outline: none;
+}
+
+.topbar-btn:hover {
+  background-color: var(--dropdown-surface-hover);
+  color: var(--text-primary);
+}
+
+.topbar-btn:hover .ui-icon {
+  background-color: var(--text-primary);
+}
+
+.topbar-btn.primary {
+  background-color: #1a1a1a;
+  border: 1px solid #333333;
+}
+
+.topbar-btn.primary:hover {
+  background-color: #242424;
+}
+

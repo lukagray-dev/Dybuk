@@ -1,6 +1,35 @@
 [workspace]
+resolver = "2"
 members = [
     "dybuk",
     "desktop/src-tauri",
 ]
-resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Luka Gray (aka Soumo Mukherjee)"]
+
+[workspace.dependencies]
+# ── Internal Crates ───────────────────────────────────────────────────────────
+dybuk = { path = "dybuk" }
+
+# ── Core & Cryptography ───────────────────────────────────────────────────────
+aes-gcm = "0.10"
+argon2 = "0.5"
+chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8"
+zeroize = { version = "1.8", features = ["derive"] }
+
+# ── Serialization & Utilities ─────────────────────────────────────────────────
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+# ── Desktop & Tauri ───────────────────────────────────────────────────────────
+tauri = { version = "2", features = [] }
+tauri-build = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+
+# ── Dev Dependencies ──────────────────────────────────────────────────────────
+tempfile = "3"

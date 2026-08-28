@@ -162,17 +162,26 @@ pub async fn read_document(
                 is_unlocked: true,
             })
         } else {
-            // Check if already unlocked in session
-            let is_unlocked = if let Ok(store) = state.session_store.lock() {
-                store.is_unlocked(&file_path)
+            // Check if already unlocked in session store
+            let cached_key = if let Ok(store) = state.session_store.lock() {
+                store.get_key(&file_path).copied()
             } else {
-                false
+                None
             };
 
-            if is_unlocked {
-                // If unlocked in session store but no password passed, request password to reopen or decrypt
-                // (For high security, prompt password if not supplied)
-                Err("VAULT_LOCKED".to_string())
+            if let Some(key) = cached_key {
+                let decrypted_str = dybuk::format::vault::open_with_key(&file_bytes, &key)
+                    .map_err(|e| format!("Decryption with cached session key failed: {}", e))?;
+
+                // Update recents
+                let store_path = get_recents_store_path(&app);
+                let _ = recents::add_recent(&store_path, &file_path);
+
+                Ok(DocumentPayload {
+                    content: decrypted_str.to_string(),
+                    is_dybuk: true,
+                    is_unlocked: true,
+                })
             } else {
                 Err("VAULT_LOCKED".to_string())
             }

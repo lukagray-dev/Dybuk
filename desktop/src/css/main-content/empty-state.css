@@ -201,7 +201,7 @@
 }
 
 .empty-dropdown-item:hover .dropdown-item-icon {
-  color: #58a6ff;
+  color: var(--text-secondary, #cccccc);
 }
 
 .empty-dropdown-item-text {

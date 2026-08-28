@@ -265,6 +265,27 @@
   min-width: 0;
 }
 
+.sidebar-item-icon {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  color: var(--text-muted, #888888);
+  flex-shrink: 0;
+  transition: color 0.12s ease;
+}
+
+.section-header:hover .sidebar-item-icon,
+.doc-item:hover .sidebar-item-icon,
+.dropdown-item:hover .sidebar-item-icon {
+  color: var(--text-secondary, #d3d3d3);
+}
+
+.doc-item.active .sidebar-item-icon {
+  color: var(--text-primary, #ffffff);
+}
+
 .doc-title-text {
   flex: 1;
   overflow: hidden;
@@ -376,16 +397,6 @@
 .icon-sidebar-trash {
   -webkit-mask-image: url('../../assets/icons/sidebar/trash.svg');
   mask-image: url('../../assets/icons/sidebar/trash.svg');
-}
-
-.icon-doc-markdown {
-  -webkit-mask-image: url('../../assets/icons/sidebar/chats.svg');
-  mask-image: url('../../assets/icons/sidebar/chats.svg');
-}
-
-.icon-doc-dybuk {
-  -webkit-mask-image: url('../../assets/icons/sidebar/projects.svg');
-  mask-image: url('../../assets/icons/sidebar/projects.svg');
 }
 
 /* Creation Modal Form Styles */

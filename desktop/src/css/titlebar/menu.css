@@ -165,7 +165,7 @@
 }
 
 .dropdown-item:hover .dropdown-item-icon {
-  color: #58a6ff;
+  color: var(--text-secondary, #d3d3d3);
 }
 
 .dropdown-item-shortcut {

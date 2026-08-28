@@ -1,11 +1,10 @@
-// Floating toolbar and mini trigger controller for WYSIWYG Canvas
-// Provides interactive two-stage bubble toolbar (••• -> expanded menu)
-
 import {
   applyHeading,
   applyLink,
+  applyMath,
   clearFormatting,
   getActiveFormatState,
+  getCurrentMathNode,
   insertCodeBlock,
   insertHorizontalRule,
   toggleBlockquote,
@@ -25,8 +24,13 @@ export class FloatingToolbar {
   private headingMenuEl: HTMLElement | null = null;
   private linkPopoverEl: HTMLElement | null = null;
   private linkInputEl: HTMLInputElement | null = null;
+  private mathPopoverEl: HTMLElement | null = null;
+  private mathInputEl: HTMLInputElement | null = null;
+  private mathPreviewEl: HTMLElement | null = null;
+  private mathDisplayToggleEl: HTMLElement | null = null;
 
   private isToolbarExpanded = false;
+  private isMathDisplayMode = false;
   private savedRange: Range | null = null;
 
   constructor(canvas: HTMLElement) {
@@ -44,6 +48,10 @@ export class FloatingToolbar {
     this.headingMenuEl = document.getElementById('toolbar-heading-menu');
     this.linkPopoverEl = document.getElementById('toolbar-link-popover');
     this.linkInputEl = document.getElementById('toolbar-link-input') as HTMLInputElement | null;
+    this.mathPopoverEl = document.getElementById('toolbar-math-popover');
+    this.mathInputEl = document.getElementById('toolbar-math-input') as HTMLInputElement | null;
+    this.mathPreviewEl = document.getElementById('toolbar-math-preview');
+    this.mathDisplayToggleEl = document.getElementById('tb-math-display-toggle');
   }
 
   /**
@@ -80,6 +88,22 @@ export class FloatingToolbar {
       this.expandToolbar();
     });
 
+    // Clicking on math formula in canvas opens math popover for instant editing
+    this.canvas.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const mathEl = target.closest('.math, [data-tex]') as HTMLElement | null;
+      if (mathEl && this.canvas.contains(mathEl)) {
+        const range = document.createRange();
+        range.selectNode(mathEl);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        this.savedRange = range.cloneRange();
+        this.expandToolbar();
+        this.openMathPopover();
+      }
+    });
+
     // Prevent mousedown on toolbar buttons from deselecting text in canvas
     [this.triggerEl, this.toolbarEl].forEach((el) => {
       el?.addEventListener('mousedown', (e) => {
@@ -95,6 +119,7 @@ export class FloatingToolbar {
     this.setupActionButtons();
     this.setupHeadingSubmenu();
     this.setupLinkPopover();
+    this.setupMathPopover();
     this.setupCanvasKeyShortcuts();
   }
 
@@ -104,8 +129,8 @@ export class FloatingToolbar {
   private handleSelectionChange(): void {
     const selection = window.getSelection();
 
-    // If focus is inside the link input popover, don't close the toolbar
-    if (document.activeElement === this.linkInputEl) {
+    // If focus is inside link or math input popover, don't close the toolbar
+    if (document.activeElement === this.linkInputEl || document.activeElement === this.mathInputEl) {
       return;
     }
 
@@ -229,6 +254,7 @@ export class FloatingToolbar {
     this.setBtnActive('tb-btn-strike', state.strikethrough);
     this.setBtnActive('tb-btn-code', state.code);
     this.setBtnActive('tb-btn-link', state.link);
+    this.setBtnActive('tb-btn-math', state.math);
     this.setBtnActive('tb-btn-bullet', state.bulletList);
     this.setBtnActive('tb-btn-numbered', state.numberedList);
     this.setBtnActive('tb-btn-task', state.taskList);
@@ -292,6 +318,18 @@ export class FloatingToolbar {
       this.syncActiveStates();
     });
 
+    document.getElementById('tb-btn-math')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.headingMenuEl?.classList.remove('open');
+      this.closeLinkPopover();
+
+      if (this.mathPopoverEl?.classList.contains('open')) {
+        this.closeMathPopover();
+      } else {
+        this.openMathPopover();
+      }
+    });
+
     document.getElementById('tb-btn-clear')?.addEventListener('click', () => {
       this.restoreSelection();
       clearFormatting(this.canvas);
@@ -346,6 +384,7 @@ export class FloatingToolbar {
     headingBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.closeLinkPopover();
+      this.closeMathPopover();
       this.headingMenuEl?.classList.toggle('open');
     });
 
@@ -380,6 +419,7 @@ export class FloatingToolbar {
     linkBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.headingMenuEl?.classList.remove('open');
+      this.closeMathPopover();
 
       if (this.linkPopoverEl?.classList.contains('open')) {
         this.closeLinkPopover();
@@ -416,6 +456,7 @@ export class FloatingToolbar {
 
   private openLinkPopover(): void {
     if (!this.linkPopoverEl) return;
+    this.closeMathPopover();
     this.linkPopoverEl.classList.add('open');
 
     // Pre-populate URL if selection is already a link
@@ -443,6 +484,113 @@ export class FloatingToolbar {
   }
 
   /**
+   * Configures LaTeX Math Popover with live KaTeX preview.
+   */
+  private setupMathPopover(): void {
+    const applyBtn = document.getElementById('tb-math-apply');
+    const removeBtn = document.getElementById('tb-math-remove');
+
+    const updatePreview = () => {
+      const formula = this.mathInputEl?.value.trim() || '';
+      if (!this.mathPreviewEl) return;
+
+      if (!formula) {
+        this.mathPreviewEl.innerHTML = '';
+        return;
+      }
+
+      const winKatex = (window as unknown as { katex?: { render: (t: string, e: HTMLElement, opt?: unknown) => void } }).katex;
+      if (winKatex) {
+        try {
+          winKatex.render(formula, this.mathPreviewEl, { displayMode: this.isMathDisplayMode, throwOnError: false });
+        } catch {
+          this.mathPreviewEl.textContent = formula;
+        }
+      } else {
+        this.mathPreviewEl.textContent = formula;
+      }
+    };
+
+    this.mathInputEl?.addEventListener('input', updatePreview);
+
+    this.mathDisplayToggleEl?.addEventListener('click', () => {
+      this.isMathDisplayMode = !this.isMathDisplayMode;
+      this.mathDisplayToggleEl?.classList.toggle('active', this.isMathDisplayMode);
+      updatePreview();
+    });
+
+    applyBtn?.addEventListener('click', () => {
+      const formula = this.mathInputEl?.value.trim() || '';
+      this.restoreSelection();
+      applyMath(formula, this.isMathDisplayMode, this.canvas);
+      this.closeMathPopover();
+      this.syncActiveStates();
+    });
+
+    removeBtn?.addEventListener('click', () => {
+      this.restoreSelection();
+      applyMath(null, false, this.canvas);
+      this.closeMathPopover();
+      this.syncActiveStates();
+    });
+
+    this.mathInputEl?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyBtn?.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this.closeMathPopover();
+      }
+    });
+  }
+
+  private openMathPopover(): void {
+    if (!this.mathPopoverEl) return;
+    this.closeLinkPopover();
+    this.headingMenuEl?.classList.remove('open');
+    this.mathPopoverEl.classList.add('open');
+
+    const mathNode = getCurrentMathNode(this.canvas);
+    let formula = '';
+    if (mathNode) {
+      formula = mathNode.tex;
+      this.isMathDisplayMode = mathNode.isDisplay;
+    } else {
+      const selection = window.getSelection();
+      if (selection) {
+        formula = selection.toString().trim();
+      }
+    }
+
+    this.mathDisplayToggleEl?.classList.toggle('active', this.isMathDisplayMode);
+    if (this.mathInputEl) {
+      this.mathInputEl.value = formula;
+      setTimeout(() => this.mathInputEl?.focus(), 50);
+    }
+
+    // Trigger preview render immediately
+    if (this.mathPreviewEl && formula) {
+      const winKatex = (window as unknown as { katex?: { render: (t: string, e: HTMLElement, opt?: unknown) => void } }).katex;
+      if (winKatex) {
+        try {
+          winKatex.render(formula, this.mathPreviewEl, { displayMode: this.isMathDisplayMode, throwOnError: false });
+        } catch {
+          this.mathPreviewEl.textContent = formula;
+        }
+      } else {
+        this.mathPreviewEl.textContent = formula;
+      }
+    } else if (this.mathPreviewEl) {
+      this.mathPreviewEl.innerHTML = '';
+    }
+  }
+
+  private closeMathPopover(): void {
+    this.mathPopoverEl?.classList.remove('open');
+  }
+
+  /**
    * Handles keyboard shortcuts inside the editor canvas.
    */
   private setupCanvasKeyShortcuts(): void {
@@ -461,6 +609,10 @@ export class FloatingToolbar {
           e.preventDefault();
           this.expandToolbar();
           this.openLinkPopover();
+        } else if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          this.expandToolbar();
+          this.openMathPopover();
         } else if (e.key === '`') {
           e.preventDefault();
           toggleInlineCode(this.canvas);
@@ -481,5 +633,6 @@ export class FloatingToolbar {
     this.toolbarEl?.classList.remove('visible');
     this.headingMenuEl?.classList.remove('open');
     this.closeLinkPopover();
+    this.closeMathPopover();
   }
 }

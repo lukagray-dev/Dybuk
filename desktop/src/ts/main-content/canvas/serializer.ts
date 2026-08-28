@@ -20,6 +20,9 @@ export async function markdownToDom(markdown: string, container: HTMLElement): P
   const html = await renderMarkdownIpc(markdown);
   container.innerHTML = html;
 
+  // Post-process KaTeX Math formulas
+  renderMathInContainer(container);
+
   // Post-process tasklist checkboxes to make them interactive in the editor
   const checkboxes = container.querySelectorAll<HTMLInputElement>('input.task-list-item-checkbox, li.task-list-item > input[type="checkbox"]');
   checkboxes.forEach((cb) => {
@@ -33,6 +36,32 @@ export async function markdownToDom(markdown: string, container: HTMLElement): P
       // Dispatch input event to notify editor of changes
       container.dispatchEvent(new Event('input', { bubbles: true }));
     });
+  });
+}
+
+/**
+ * Finds all LaTeX math elements in the given container and renders them with KaTeX.
+ */
+export function renderMathInContainer(container: HTMLElement): void {
+  const winKatex = (window as unknown as { katex?: { render: (t: string, e: HTMLElement, opt?: unknown) => void } }).katex;
+
+  const mathElements = container.querySelectorAll<HTMLElement>('.math, [data-tex]');
+  mathElements.forEach((el) => {
+    const isDisplay = el.classList.contains('math-display') || el.classList.contains('katex-display') || el.tagName.toUpperCase() === 'DIV';
+    const tex = el.getAttribute('data-tex') || el.textContent || '';
+    const cleanTex = tex.trim();
+    if (!cleanTex) return;
+
+    el.setAttribute('data-tex', cleanTex);
+    if (winKatex) {
+      try {
+        winKatex.render(cleanTex, el, { displayMode: isDisplay, throwOnError: false });
+      } catch {
+        el.textContent = isDisplay ? `$$${cleanTex}$$` : `$${cleanTex}$`;
+      }
+    } else {
+      el.textContent = isDisplay ? `$$${cleanTex}$$` : `$${cleanTex}$`;
+    }
   });
 }
 
@@ -64,6 +93,17 @@ function walkNode(node: Node, indentLevel: number = 0): string {
 
   const el = node as HTMLElement;
   const tag = el.tagName.toUpperCase();
+
+  // Handle Math elements with highest priority (before walking inner KaTeX DOM spans)
+  if (el.classList.contains('math') || el.hasAttribute('data-tex') || el.classList.contains('katex') || el.classList.contains('katex-display')) {
+    const isDisplay = el.classList.contains('math-display') || el.classList.contains('katex-display') || tag === 'DIV';
+    const tex = el.getAttribute('data-tex') || el.textContent || '';
+    const cleanTex = tex.trim();
+    if (isDisplay) {
+      return `\n\n$$${cleanTex}$$\n\n`;
+    }
+    return `$${cleanTex}$`;
+  }
 
   switch (tag) {
     case 'H1':

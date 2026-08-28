@@ -7,6 +7,7 @@ export interface ActiveFormatState {
   strikethrough: boolean;
   code: boolean;
   link: boolean;
+  math: boolean;
   heading: number | null; // 1 to 6 or null for paragraph
   bulletList: boolean;
   numberedList: boolean;
@@ -27,6 +28,7 @@ export function getActiveFormatState(canvas: HTMLElement): ActiveFormatState {
     strikethrough: false,
     code: false,
     link: false,
+    math: false,
     heading: null,
     bulletList: false,
     numberedList: false,
@@ -60,6 +62,7 @@ export function getActiveFormatState(canvas: HTMLElement): ActiveFormatState {
       if (tag === 'DEL' || tag === 'S' || tag === 'STRIKE') state.strikethrough = true;
       if (tag === 'CODE' && el.parentElement?.tagName.toUpperCase() !== 'PRE') state.code = true;
       if (tag === 'A') state.link = true;
+      if (el.classList.contains('math') || el.hasAttribute('data-tex') || el.classList.contains('katex')) state.math = true;
       if (tag === 'BLOCKQUOTE') state.blockquote = true;
       if (tag === 'PRE') state.codeBlock = true;
 
@@ -183,6 +186,95 @@ export function applyLink(url: string | null): void {
       parent.setAttribute('rel', 'noopener noreferrer');
     }
   }
+}
+
+/**
+ * Returns the active math element under cursor/selection if present.
+ */
+export function getCurrentMathNode(canvas: HTMLElement): { el: HTMLElement; tex: string; isDisplay: boolean } | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+
+  let node: Node | null = selection.anchorNode;
+  while (node && node !== canvas && node !== document.body) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      if (el.classList.contains('math') || el.hasAttribute('data-tex') || el.classList.contains('katex') || el.classList.contains('katex-display')) {
+        const mathContainer = (el.closest('[data-tex], .math') as HTMLElement) || el;
+        const tex = mathContainer.getAttribute('data-tex') || mathContainer.textContent || '';
+        const isDisplay = mathContainer.classList.contains('math-display') || mathContainer.classList.contains('katex-display') || mathContainer.tagName.toUpperCase() === 'DIV';
+        return { el: mathContainer, tex, isDisplay };
+      }
+    }
+    node = node.parentNode;
+  }
+  return null;
+}
+
+/**
+ * Applies, updates, or removes a LaTeX mathematical formula at the active selection.
+ */
+export function applyMath(tex: string | null, isDisplay: boolean = false, canvas?: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  const currentMath = canvas ? getCurrentMathNode(canvas) : null;
+
+  // Case 1: Removing Math
+  if (!tex || tex.trim() === '') {
+    if (currentMath) {
+      const textNode = document.createTextNode(currentMath.tex);
+      currentMath.el.parentNode?.replaceChild(textNode, currentMath.el);
+    }
+    return;
+  }
+
+  const cleanTex = tex.trim();
+
+  // Case 2: Updating existing math element
+  if (currentMath) {
+    currentMath.el.setAttribute('data-tex', cleanTex);
+    currentMath.el.className = `math ${isDisplay ? 'math-display' : 'math-inline'}`;
+    const winKatex = (window as unknown as { katex?: { render: (t: string, e: HTMLElement, opt?: unknown) => void } }).katex;
+    if (winKatex) {
+      try {
+        winKatex.render(cleanTex, currentMath.el, { displayMode: isDisplay, throwOnError: false });
+      } catch {
+        currentMath.el.textContent = isDisplay ? `$$${cleanTex}$$` : `$${cleanTex}$`;
+      }
+    } else {
+      currentMath.el.textContent = isDisplay ? `$$${cleanTex}$$` : `$${cleanTex}$`;
+    }
+    return;
+  }
+
+  // Case 3: Inserting new math formula at selection
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+
+  const mathEl = document.createElement(isDisplay ? 'div' : 'span');
+  mathEl.className = `math ${isDisplay ? 'math-display' : 'math-inline'}`;
+  mathEl.setAttribute('data-tex', cleanTex);
+
+  const winKatex = (window as unknown as { katex?: { render: (t: string, e: HTMLElement, opt?: unknown) => void } }).katex;
+  if (winKatex) {
+    try {
+      winKatex.render(cleanTex, mathEl, { displayMode: isDisplay, throwOnError: false });
+    } catch {
+      mathEl.textContent = isDisplay ? `$$${cleanTex}$$` : `$${cleanTex}$`;
+    }
+  } else {
+    mathEl.textContent = isDisplay ? `$$${cleanTex}$$` : `$${cleanTex}$`;
+  }
+
+  range.insertNode(mathEl);
+
+  // Position cursor immediately after the math element
+  const afterRange = document.createRange();
+  afterRange.setStartAfter(mathEl);
+  afterRange.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(afterRange);
 }
 
 /**

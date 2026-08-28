@@ -267,3 +267,70 @@
   background: rgba(255, 107, 107, 0.15);
 }
 
+/* Math Popover with Live KaTeX Preview */
+.toolbar-popover.math-popover {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 360px;
+  padding: 8px 10px;
+}
+
+.toolbar-popover-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.toolbar-popover-input.math-input {
+  flex: 1;
+  width: auto;
+  font-family: var(--mono-font-family, 'Kode Mono', monospace);
+  font-size: 12px;
+}
+
+.toolbar-math-preview {
+  min-height: 32px;
+  max-height: 120px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f0f6fc;
+  font-size: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.toolbar-math-preview:empty:before {
+  content: 'Live LaTeX Preview';
+  color: var(--text-muted, #777777);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* Math Elements in Editor Canvas */
+.editor-canvas.markdown-body .math,
+.editor-canvas.markdown-body span[data-tex],
+.editor-canvas.markdown-body div[data-tex] {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 4px;
+  transition: background-color 0.12s ease, outline-color 0.12s ease;
+  user-select: all;
+}
+
+.editor-canvas.markdown-body .math:hover,
+.editor-canvas.markdown-body span[data-tex]:hover,
+.editor-canvas.markdown-body div[data-tex]:hover {
+  background-color: rgba(96, 197, 255, 0.12);
+  outline: 1px dashed rgba(96, 197, 255, 0.4);
+}
+
+

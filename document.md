@@ -22,7 +22,7 @@ Your writing doesnâ€™t have to stay in plain `.md`. Save it as `.dybuk` and itâ€
 
 ## Getting Started
 
-Early build. Expect bugs, chaos, and updates. *Stay tuned.*
+Early build. Expect bugs, chaos, and updates. *Stay tuned.$2^m$*
 
 ## License & Contributing
 

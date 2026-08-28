@@ -129,3 +129,18 @@
   background-color: #242424;
 }
 
+.topbar-btn.icon-only {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 4px;
+}
+
+/* Lock Icon Mask */
+.icon-topbar-lock,
+.icon-lock {
+  -webkit-mask-image: url('../../assets/icons/main-content/lock.svg');
+  mask-image: url('../../assets/icons/main-content/lock.svg');
+}
+
+

@@ -33,15 +33,10 @@ function setupEditorInputs(): void {
 }
 
 /**
- * Sets up Save and Lock buttons in the topbar.
+ * Sets up the Lock button in the topbar.
  */
 function setupEditorActions(): void {
-  const btnSave = document.getElementById('topbar-btn-save');
   const btnLock = document.getElementById('topbar-btn-lock');
-
-  btnSave?.addEventListener('click', async () => {
-    await saveActiveDocument();
-  });
 
   btnLock?.addEventListener('click', async () => {
     await lockActiveDocument();

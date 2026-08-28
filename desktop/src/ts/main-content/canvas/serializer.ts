@@ -20,11 +20,16 @@ export async function markdownToDom(markdown: string, container: HTMLElement): P
   const html = await renderMarkdownIpc(markdown);
   container.innerHTML = html;
 
-  // Post-process KaTeX Math formulas
+  // 1. Post-process KaTeX Math formulas
   renderMathInContainer(container);
 
-  // Post-process tasklist checkboxes to make them interactive in the editor
-  const checkboxes = container.querySelectorAll<HTMLInputElement>('input.task-list-item-checkbox, li.task-list-item > input[type="checkbox"]');
+  // 2. Post-process GitHub Alert blockquotes into interactive alert cards
+  postProcessAlertCards(container);
+
+  // 3. Post-process tasklist checkboxes to make them interactive in the editor
+  const checkboxes = container.querySelectorAll<HTMLInputElement>(
+    'input.task-list-item-checkbox, li.task-list-item > input[type="checkbox"]'
+  );
   checkboxes.forEach((cb) => {
     cb.removeAttribute('disabled');
     cb.addEventListener('change', () => {
@@ -66,6 +71,41 @@ export function renderMathInContainer(container: HTMLElement): void {
 }
 
 /**
+ * Post-processes blockquotes starting with `[!NOTE]`, `[!TIP]`, etc. into GitHub alert cards.
+ */
+function postProcessAlertCards(container: HTMLElement): void {
+  const blockquotes = container.querySelectorAll<HTMLElement>('blockquote');
+  blockquotes.forEach((bq) => {
+    const text = bq.textContent || '';
+    const match = text.match(/^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
+    if (match && match[1]) {
+      const type = match[1].toUpperCase() as 'NOTE' | 'TIP' | 'IMPORTANT' | 'WARNING' | 'CAUTION';
+      const typeLower = type.toLowerCase();
+      const alertTitle = type.charAt(0) + type.slice(1).toLowerCase();
+
+      // Clean first paragraph header
+      const firstP = bq.querySelector('p');
+      if (firstP) {
+        firstP.innerHTML = firstP.innerHTML.replace(/^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(<br>)?/i, '');
+      }
+
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `markdown-alert markdown-alert-${typeLower}`;
+
+      const titlePara = document.createElement('p');
+      titlePara.className = 'markdown-alert-title';
+      titlePara.textContent = alertTitle;
+
+      alertDiv.appendChild(titlePara);
+      while (bq.firstChild) {
+        alertDiv.appendChild(bq.firstChild);
+      }
+      bq.parentNode?.replaceChild(alertDiv, bq);
+    }
+  });
+}
+
+/**
  * Serializes the contenteditable canvas DOM tree back into clean, standard GitHub-Flavored Markdown.
  *
  * @param root - The contenteditable canvas root HTMLElement.
@@ -94,7 +134,7 @@ function walkNode(node: Node, indentLevel: number = 0): string {
   const el = node as HTMLElement;
   const tag = el.tagName.toUpperCase();
 
-  // Handle Math elements with highest priority (before walking inner KaTeX DOM spans)
+  // 1. Math Elements (Highest Priority before inner KaTeX DOM)
   if (el.classList.contains('math') || el.hasAttribute('data-tex') || el.classList.contains('katex') || el.classList.contains('katex-display')) {
     const isDisplay = el.classList.contains('math-display') || el.classList.contains('katex-display') || tag === 'DIV';
     const tex = el.getAttribute('data-tex') || el.textContent || '';
@@ -103,6 +143,23 @@ function walkNode(node: Node, indentLevel: number = 0): string {
       return `\n\n$$${cleanTex}$$\n\n`;
     }
     return `$${cleanTex}$`;
+  }
+
+  // 2. GitHub Alert Cards
+  if (el.classList.contains('markdown-alert')) {
+    let alertType = 'NOTE';
+    if (el.classList.contains('markdown-alert-tip')) alertType = 'TIP';
+    else if (el.classList.contains('markdown-alert-important')) alertType = 'IMPORTANT';
+    else if (el.classList.contains('markdown-alert-warning')) alertType = 'WARNING';
+    else if (el.classList.contains('markdown-alert-caution')) alertType = 'CAUTION';
+
+    const paras = Array.from(el.querySelectorAll(':scope > p:not(.markdown-alert-title)'));
+    const bodyText = paras
+      .map((p) => serializeChildren(p as HTMLElement).trim())
+      .filter(Boolean)
+      .join('\n>\n> ');
+
+    return `> [!${alertType}]\n> ${bodyText || 'Alert content'}\n\n`;
   }
 
   switch (tag) {
@@ -120,8 +177,13 @@ function walkNode(node: Node, indentLevel: number = 0): string {
       return `###### ${serializeChildren(el).trim()}\n\n`;
 
     case 'P': {
+      const textAlign = el.style.textAlign || el.getAttribute('align');
       const content = serializeChildren(el).trim();
-      return content ? `${content}\n\n` : '';
+      if (!content) return '';
+      if (textAlign && (textAlign === 'center' || textAlign === 'right')) {
+        return `<div align="${textAlign}">\n\n${content}\n\n</div>\n\n`;
+      }
+      return `${content}\n\n`;
     }
 
     case 'STRONG':
@@ -147,12 +209,42 @@ function walkNode(node: Node, indentLevel: number = 0): string {
     }
 
     case 'CODE': {
-      // If parent is PRE, handled by PRE handler
       if (el.parentElement?.tagName.toUpperCase() === 'PRE') {
         return el.textContent || '';
       }
       const codeText = el.textContent || '';
       return `\`${codeText}\``;
+    }
+
+    case 'KBD':
+      return `<kbd>${serializeChildren(el)}</kbd>`;
+
+    case 'SUB':
+      return `<sub>${serializeChildren(el)}</sub>`;
+
+    case 'SUP':
+      return `<sup>${serializeChildren(el)}</sup>`;
+
+    case 'MARK': {
+      const bg = el.style.backgroundColor;
+      const inner = serializeChildren(el);
+      if (bg) {
+        return `<mark style="background-color: ${bg}; color: inherit;">${inner}</mark>`;
+      }
+      return `<mark>${inner}</mark>`;
+    }
+
+    case 'SPAN': {
+      const color = el.style.color;
+      const shadow = el.style.textShadow;
+      const inner = serializeChildren(el);
+      if (color || (shadow && shadow !== 'none')) {
+        let styleStr = '';
+        if (color) styleStr += `color: ${color};`;
+        if (shadow && shadow !== 'none') styleStr += ` text-shadow: ${shadow};`;
+        return `<span style="${styleStr.trim()}">${inner}</span>`;
+      }
+      return inner;
     }
 
     case 'PRE': {
@@ -174,6 +266,15 @@ function walkNode(node: Node, indentLevel: number = 0): string {
       const lines = inner.split('\n');
       const quoted = lines.map((line) => (line.trim() ? `> ${line}` : '>')).join('\n');
       return `${quoted}\n\n`;
+    }
+
+    case 'DETAILS': {
+      const summaryEl = el.querySelector('summary');
+      const summaryText = summaryEl ? serializeChildren(summaryEl).trim() : 'Details';
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone.querySelector('summary')?.remove();
+      const content = serializeChildren(clone).trim();
+      return `<details>\n<summary>${summaryText}</summary>\n\n${content}\n\n</details>\n\n`;
     }
 
     case 'UL': {
@@ -224,7 +325,11 @@ function walkNode(node: Node, indentLevel: number = 0): string {
     case 'DIV':
     case 'SECTION':
     case 'ARTICLE': {
+      const align = el.getAttribute('align') || el.style.textAlign;
       const inner = serializeChildren(el);
+      if (align && (align === 'center' || align === 'right')) {
+        return `<div align="${align}">\n\n${inner.trim()}\n\n</div>\n\n`;
+      }
       return inner.endsWith('\n') ? inner : `${inner}\n`;
     }
 
@@ -279,7 +384,7 @@ function serializeListItem(
       const childEl = child as HTMLElement;
       const childTag = childEl.tagName.toUpperCase();
 
-      // Skip the checkbox itself from inner text
+      // Skip checkbox input element itself from inner text
       if (childTag === 'INPUT' && (childEl as HTMLInputElement).type === 'checkbox') {
         continue;
       }
@@ -289,59 +394,99 @@ function serializeListItem(
         continue;
       }
     }
-    textContent += walkNode(child, indentLevel);
+
+    textContent += walkNode(child);
   }
 
-  const cleanText = textContent.trim();
-  let itemOutput = `${indent}${prefix}${cleanText}\n`;
+  const cleanText = textContent.replace(/\n+$/, '').trim();
+  let result = `${indent}${prefix}${cleanText}\n`;
   if (nestedLists) {
-    itemOutput += nestedLists;
+    result += nestedLists;
   }
-
-  return itemOutput;
+  return result;
 }
 
 /**
- * Serializes an HTML `<table>` into clean GitHub-Flavored Markdown table syntax.
+ * Serializes a standard HTML `<table>` element into GitHub-Flavored Markdown table syntax.
  */
 function serializeTable(table: HTMLTableElement): string {
   const rows = Array.from(table.querySelectorAll('tr'));
   if (rows.length === 0) return '';
 
-  let tableMd = '';
-  const headerRow = rows[0];
-  if (!headerRow) return '';
-  const headerCells = Array.from(headerRow.querySelectorAll('th, td'));
+  const tableMatrix: string[][] = [];
+  const alignments: ('left' | 'center' | 'right' | null)[] = [];
 
-  if (headerCells.length === 0) return '';
+  rows.forEach((row, rowIndex) => {
+    const cells = Array.from(row.querySelectorAll('th, td'));
+    const rowValues: string[] = [];
 
-  // Header row
-  const headers = headerCells.map((c) => serializeChildren(c as HTMLElement).trim());
-  tableMd += `| ${headers.join(' | ')} |\n`;
+    cells.forEach((cell, colIndex) => {
+      const cellText = serializeChildren(cell as HTMLElement).replace(/\n+/g, ' ').trim();
+      rowValues.push(cellText);
 
-  // Delimiter row
-  const delimiters = headerCells.map((c) => {
-    const cellEl = c as HTMLElement;
-    const align = (cellEl.getAttribute('align') || cellEl.style.textAlign || '').toLowerCase();
-    if (align === 'center') return ':---:';
-    if (align === 'right') return '---:';
-    return '---';
+      // Detect alignment from header row
+      if (rowIndex === 0) {
+        const align = cell.getAttribute('align') || (cell as HTMLElement).style.textAlign;
+        if (align === 'center') alignments[colIndex] = 'center';
+        else if (align === 'right') alignments[colIndex] = 'right';
+        else alignments[colIndex] = 'left';
+      }
+    });
+
+    tableMatrix.push(rowValues);
   });
-  tableMd += `| ${delimiters.join(' | ')} |\n`;
 
-  // Body rows
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row) continue;
-    const cells = Array.from(row.querySelectorAll('td, th'));
-    const rowValues = cells.map((c) => serializeChildren(c as HTMLElement).trim());
-    // Pad row with empty cells if fewer than header
-    while (rowValues.length < headers.length) {
-      rowValues.push('');
+  if (tableMatrix.length === 0 || !tableMatrix[0]) return '';
+
+  // Determine maximum column widths
+  const numCols = Math.max(...tableMatrix.map((r) => r.length));
+  const colWidths: number[] = new Array(numCols).fill(3);
+
+  tableMatrix.forEach((row) => {
+    row.forEach((cell, idx) => {
+      if (cell.length > (colWidths[idx] || 0)) {
+        colWidths[idx] = cell.length;
+      }
+    });
+  });
+
+  let md = '';
+
+  // 1. Header row
+  const headerRow = tableMatrix[0];
+  md += '|';
+  for (let i = 0; i < numCols; i++) {
+    const val = (headerRow[i] || '').padEnd(colWidths[i] || 3, ' ');
+    md += ` ${val} |`;
+  }
+  md += '\n';
+
+  // 2. Delimiter row with alignment
+  md += '|';
+  for (let i = 0; i < numCols; i++) {
+    const width = Math.max(3, colWidths[i] || 3);
+    const align = alignments[i] || 'left';
+    if (align === 'center') {
+      md += ` :${'-'.repeat(width - 2)}: |`;
+    } else if (align === 'right') {
+      md += ` ${'-'.repeat(width - 1)}: |`;
+    } else {
+      md += ` ${'-'.repeat(width)} |`;
     }
-    tableMd += `| ${rowValues.join(' | ')} |\n`;
+  }
+  md += '\n';
+
+  // 3. Body rows
+  for (let r = 1; r < tableMatrix.length; r++) {
+    const row = tableMatrix[r];
+    if (!row) continue;
+    md += '|';
+    for (let c = 0; c < numCols; c++) {
+      const val = (row[c] || '').padEnd(colWidths[c] || 3, ' ');
+      md += ` ${val} |`;
+    }
+    md += '\n';
   }
 
-  return `${tableMd}\n`;
+  return `${md}\n`;
 }
-

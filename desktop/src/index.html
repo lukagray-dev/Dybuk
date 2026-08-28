@@ -265,68 +265,148 @@
         <svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
       </button>
 
-      <!-- Floating Bubble Formatting Toolbar -->
-      <div id="floating-toolbar" class="floating-toolbar" role="toolbar" aria-label="Text Formatting">
-        <!-- Inline Actions -->
-        <div class="toolbar-group">
-          <button id="tb-btn-bold" class="toolbar-btn" title="Bold (Ctrl+B)">
-            <svg viewBox="0 0 24 24"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
-          </button>
-          <button id="tb-btn-italic" class="toolbar-btn" title="Italic (Ctrl+I)">
-            <svg viewBox="0 0 24 24"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
-          </button>
-          <button id="tb-btn-strike" class="toolbar-btn" title="Strikethrough (Ctrl+Shift+X)">
-            <svg viewBox="0 0 24 24"><path d="M17.3 4.9c-2.3-.6-4.4-1-6.2-.9-2.7.2-4.5 1.5-4.5 3.4 0 1.7 1.3 2.8 3.5 3.3l1.8.4"/><line x1="4" y1="12" x2="20" y2="12"/><path d="M11 15.5c.6.2 1.3.3 2.1.3 2.9 0 4.9-1.3 4.9-3.5 0-.4-.1-.8-.2-1.1"/></svg>
-          </button>
-          <button id="tb-btn-code" class="toolbar-btn" title="Inline Code (Ctrl+`)">
-            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          </button>
-          <button id="tb-btn-link" class="toolbar-btn" title="Link (Ctrl+K)">
-            <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          </button>
-          <button id="tb-btn-clear" class="toolbar-btn" title="Clear Formatting">
-            <svg viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
-          </button>
+      <!-- Floating Bubble Formatting Toolbar (Two Rows) -->
+      <div id="floating-toolbar" class="floating-toolbar double-row" role="toolbar" aria-label="Text Formatting">
+        <!-- Row 1: Inline Styles, Effects, Math & Colors -->
+        <div class="toolbar-row toolbar-row-inline">
+          <!-- Text Styling Group -->
+          <div class="toolbar-group">
+            <button id="tb-btn-bold" class="toolbar-btn" title="Bold (Ctrl+B)">
+              <svg viewBox="0 0 24 24"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+            </button>
+            <button id="tb-btn-italic" class="toolbar-btn" title="Italic (Ctrl+I)">
+              <svg viewBox="0 0 24 24"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+            </button>
+            <button id="tb-btn-strike" class="toolbar-btn" title="Strikethrough (Ctrl+Shift+X)">
+              <svg viewBox="0 0 24 24"><path d="M17.3 4.9c-2.3-.6-4.4-1-6.2-.9-2.7.2-4.5 1.5-4.5 3.4 0 1.7 1.3 2.8 3.5 3.3l1.8.4"/><line x1="4" y1="12" x2="20" y2="12"/><path d="M11 15.5c.6.2 1.3.3 2.1.3 2.9 0 4.9-1.3 4.9-3.5 0-.4-.1-.8-.2-1.1"/></svg>
+            </button>
+            <button id="tb-btn-code" class="toolbar-btn" title="Inline Code (Ctrl+`)">
+              <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </button>
+            <button id="tb-btn-link" class="toolbar-btn" title="Link (Ctrl+K)">
+              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+            <button id="tb-btn-math" class="toolbar-btn" title="LaTeX Math (Ctrl+M)">
+              <svg viewBox="0 0 24 24"><path d="M3 12h2l3 9 4-18h9"/><line x1="14" y1="13" x2="20" y2="13"/><line x1="17" y1="10" x2="17" y2="16"/></svg>
+            </button>
+          </div>
+
+          <div class="toolbar-separator"></div>
+
+          <!-- Rich Text Effects: Color, Highlight, Keycap, Sub/Sup -->
+          <div class="toolbar-group">
+            <button id="tb-btn-color" class="toolbar-btn" title="Text Color & Glow (Ctrl+Shift+C)">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>
+            </button>
+            <button id="tb-btn-highlight" class="toolbar-btn" title="Highlight Marker (Ctrl+Shift+H)">
+              <svg viewBox="0 0 24 24"><path d="m9 11-6 6v3h3l6-6"/><path d="m22 7-4.5-4.5a1.5 1.5 0 0 0-2.12 0l-1.88 1.88 6.62 6.62 1.88-1.88a1.5 1.5 0 0 0 0-2.12z"/></svg>
+            </button>
+            <button id="tb-btn-kbd" class="toolbar-btn" title="Keycap Badge (<kbd>)">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 15h10"/><path d="M7 9h2"/><path d="M11 9h2"/><path d="M15 9h2"/></svg>
+            </button>
+            <button id="tb-btn-sub" class="toolbar-btn" title="Subscript (Ctrl+,)">
+              <svg viewBox="0 0 24 24"><path d="m4 5 8 8m-8 0 8-8"/><path d="M20 19h-4c0-1.5 1.5-2 2.5-2.5.8-.4 1.5-.9 1.5-1.8 0-1-.8-1.7-1.8-1.7-1.1 0-1.7.7-1.7 1.5"/></svg>
+            </button>
+            <button id="tb-btn-sup" class="toolbar-btn" title="Superscript (Ctrl+.)">
+              <svg viewBox="0 0 24 24"><path d="m4 11 8 8m-8 0 8-8"/><path d="M20 9h-4c0-1.5 1.5-2 2.5-2.5.8-.4 1.5-.9 1.5-1.8 0-1-.8-1.7-1.8-1.7-1.1 0-1.7.7-1.7 1.5"/></svg>
+            </button>
+            <button id="tb-btn-clear" class="toolbar-btn" title="Clear Formatting">
+              <svg viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+            </button>
+          </div>
         </div>
 
-        <div class="toolbar-separator"></div>
-
-        <!-- Block Actions & Headings Dropdown -->
-        <div class="toolbar-group">
-          <div style="position: relative;">
-            <button id="tb-btn-heading" class="toolbar-btn toolbar-btn-dropdown" title="Heading Level">
-              <span id="tb-heading-label">Text</span>
-              <svg class="dropdown-caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <div id="toolbar-heading-menu" class="toolbar-dropdown-menu">
-              <div class="tb-heading-option" data-level="0">Normal Text</div>
-              <div class="tb-heading-option" data-level="1">Heading 1</div>
-              <div class="tb-heading-option" data-level="2">Heading 2</div>
-              <div class="tb-heading-option" data-level="3">Heading 3</div>
-              <div class="tb-heading-option" data-level="4">Heading 4</div>
-              <div class="tb-heading-option" data-level="5">Heading 5</div>
-              <div class="tb-heading-option" data-level="6">Heading 6</div>
+        <!-- Row 2: Block Structure, Lists, Callouts & Layout -->
+        <div class="toolbar-row toolbar-row-block">
+          <!-- Headings Dropdown -->
+          <div class="toolbar-group">
+            <div style="position: relative;">
+              <button id="tb-btn-heading" class="toolbar-btn toolbar-btn-dropdown" title="Heading Level">
+                <span id="tb-heading-label">Text</span>
+                <svg class="dropdown-caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="toolbar-heading-menu" class="toolbar-dropdown-menu">
+                <div class="tb-heading-option" data-level="0">Normal Text</div>
+                <div class="tb-heading-option" data-level="1">Heading 1</div>
+                <div class="tb-heading-option" data-level="2">Heading 2</div>
+                <div class="tb-heading-option" data-level="3">Heading 3</div>
+                <div class="tb-heading-option" data-level="4">Heading 4</div>
+                <div class="tb-heading-option" data-level="5">Heading 5</div>
+                <div class="tb-heading-option" data-level="6">Heading 6</div>
+              </div>
             </div>
           </div>
 
-          <button id="tb-btn-bullet" class="toolbar-btn" title="Bullet List">
-            <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          </button>
-          <button id="tb-btn-numbered" class="toolbar-btn" title="Numbered List">
-            <svg viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
-          </button>
-          <button id="tb-btn-task" class="toolbar-btn" title="Task List">
-            <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          </button>
-          <button id="tb-btn-quote" class="toolbar-btn" title="Blockquote">
-            <svg viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.75-2-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2 0 4-1 6-3 8zm14 0c3 0 7-1 7-8V5c0-1.25-.75-2-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2 0 4-1 6-3 8z"/></svg>
-          </button>
-          <button id="tb-btn-codeblock" class="toolbar-btn" title="Code Block">
-            <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          </button>
-          <button id="tb-btn-hr" class="toolbar-btn" title="Horizontal Divider">
-            <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/></svg>
-          </button>
+          <div class="toolbar-separator"></div>
+
+          <!-- Lists & Quotes Group -->
+          <div class="toolbar-group">
+            <button id="tb-btn-bullet" class="toolbar-btn" title="Bullet List">
+              <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg>
+            </button>
+            <button id="tb-btn-numbered" class="toolbar-btn" title="Numbered List">
+              <svg viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+            </button>
+            <button id="tb-btn-task" class="toolbar-btn" title="Task List">
+              <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </button>
+            <button id="tb-btn-quote" class="toolbar-btn" title="Blockquote">
+              <svg viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.75-2-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2 0 4-1 6-3 8zm14 0c3 0 7-1 7-8V5c0-1.25-.75-2-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2 0 4-1 6-3 8z"/></svg>
+            </button>
+
+            <!-- Callout / GitHub Alerts Dropdown -->
+            <div style="position: relative;">
+              <button id="tb-btn-alert" class="toolbar-btn toolbar-btn-dropdown" title="GitHub Alert Callout">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <svg class="dropdown-caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="toolbar-alert-menu" class="toolbar-dropdown-menu">
+                <div class="tb-alert-option" data-alert="NOTE">
+                  <span class="tb-alert-badge badge-note">Note</span>
+                </div>
+                <div class="tb-alert-option" data-alert="TIP">
+                  <span class="tb-alert-badge badge-tip">Tip</span>
+                </div>
+                <div class="tb-alert-option" data-alert="IMPORTANT">
+                  <span class="tb-alert-badge badge-important">Important</span>
+                </div>
+                <div class="tb-alert-option" data-alert="WARNING">
+                  <span class="tb-alert-badge badge-warning">Warning</span>
+                </div>
+                <div class="tb-alert-option" data-alert="CAUTION">
+                  <span class="tb-alert-badge badge-caution">Caution</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="toolbar-separator"></div>
+
+          <!-- Code, Details, Divider, Alignment -->
+          <div class="toolbar-group">
+            <button id="tb-btn-codeblock" class="toolbar-btn" title="Code Block">
+              <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            </button>
+            <button id="tb-btn-details" class="toolbar-btn" title="Collapsible Details (<details>)">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><polyline points="7 10 12 15 17 10"/></svg>
+            </button>
+            <button id="tb-btn-hr" class="toolbar-btn" title="Horizontal Divider">
+              <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/></svg>
+            </button>
+
+            <!-- Text Alignment Dropdown -->
+            <div style="position: relative;">
+              <button id="tb-btn-align" class="toolbar-btn toolbar-btn-dropdown" title="Text Alignment">
+                <svg id="tb-align-icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+                <svg class="dropdown-caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="toolbar-align-menu" class="toolbar-dropdown-menu">
+                <div class="tb-align-option" data-align="left">Left Align</div>
+                <div class="tb-align-option" data-align="center">Center Align</div>
+                <div class="tb-align-option" data-align="right">Right Align</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Link Popover -->
@@ -334,6 +414,55 @@
           <input id="toolbar-link-input" class="toolbar-popover-input" type="text" placeholder="https://..." />
           <button id="tb-link-apply" class="toolbar-popover-btn primary" title="Apply Link">Apply</button>
           <button id="tb-link-remove" class="toolbar-popover-btn danger" title="Remove Link">Unlink</button>
+        </div>
+
+        <!-- Math Popover -->
+        <div id="toolbar-math-popover" class="toolbar-popover math-popover">
+          <div class="toolbar-popover-row">
+            <input id="toolbar-math-input" class="toolbar-popover-input math-input" type="text" placeholder="LaTeX (e.g. \sqrt{x} + \frac{a}{b})" />
+            <button id="tb-math-display-toggle" class="toolbar-popover-btn" title="Toggle Display Mode ($$)">$$</button>
+            <button id="tb-math-apply" class="toolbar-popover-btn primary" title="Apply Math">Apply</button>
+            <button id="tb-math-remove" class="toolbar-popover-btn danger" title="Remove Math">Remove</button>
+          </div>
+          <div id="toolbar-math-preview" class="toolbar-math-preview" title="Live Preview"></div>
+        </div>
+
+        <!-- Color & Glow Popover -->
+        <div id="toolbar-color-popover" class="toolbar-popover color-popover">
+          <div class="color-popover-section-label">Text Color</div>
+          <div class="color-swatches-grid">
+            <button class="color-swatch-btn" data-color="#58a6ff" style="--swatch-color: #58a6ff;" title="Electric Blue"></button>
+            <button class="color-swatch-btn" data-color="#3fb950" style="--swatch-color: #3fb950;" title="Emerald Green"></button>
+            <button class="color-swatch-btn" data-color="#bc8cff" style="--swatch-color: #bc8cff;" title="Lavender Violet"></button>
+            <button class="color-swatch-btn" data-color="#d29922" style="--swatch-color: #d29922;" title="Amber Gold"></button>
+            <button class="color-swatch-btn" data-color="#ff7b72" style="--swatch-color: #ff7b72;" title="Coral Red"></button>
+            <button class="color-swatch-btn" data-color="#ffffff" style="--swatch-color: #ffffff;" title="Pure White"></button>
+          </div>
+          <div class="color-popover-section-label">Neon Glow Intensity</div>
+          <div class="glow-options-row">
+            <button class="glow-pill-btn active" data-glow="none">None</button>
+            <button class="glow-pill-btn" data-glow="soft">Soft Glow</button>
+            <button class="glow-pill-btn" data-glow="neon">Neon Pulse</button>
+          </div>
+          <div class="color-popover-actions">
+            <button id="tb-color-apply" class="toolbar-popover-btn primary">Apply</button>
+            <button id="tb-color-reset" class="toolbar-popover-btn danger">Reset Color</button>
+          </div>
+        </div>
+
+        <!-- Highlighter Popover -->
+        <div id="toolbar-highlight-popover" class="toolbar-popover highlight-popover">
+          <div class="color-popover-section-label">Highlighter Pen</div>
+          <div class="highlight-swatches-grid">
+            <button class="highlight-chip-btn" data-highlight="#d2992255" style="--hl-color: rgba(210,153,34,0.3); border-color: #d29922;">Yellow</button>
+            <button class="highlight-chip-btn" data-highlight="#3fb95055" style="--hl-color: rgba(63,185,80,0.3); border-color: #3fb950;">Green</button>
+            <button class="highlight-chip-btn" data-highlight="#bc8cff55" style="--hl-color: rgba(188,140,255,0.3); border-color: #bc8cff;">Purple</button>
+            <button class="highlight-chip-btn" data-highlight="#58a6ff55" style="--hl-color: rgba(88,166,255,0.3); border-color: #58a6ff;">Blue</button>
+            <button class="highlight-chip-btn" data-highlight="#ff7b7255" style="--hl-color: rgba(255,123,114,0.3); border-color: #ff7b72;">Coral</button>
+          </div>
+          <div class="color-popover-actions">
+            <button id="tb-highlight-reset" class="toolbar-popover-btn danger" style="width: 100%;">Clear Highlight</button>
+          </div>
         </div>
       </div>
     </div>

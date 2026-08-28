@@ -8,12 +8,20 @@ export interface ActiveFormatState {
   code: boolean;
   link: boolean;
   math: boolean;
+  color: string | null;
+  glow: 'none' | 'soft' | 'neon';
+  highlight: boolean;
+  kbd: boolean;
+  subscript: boolean;
+  superscript: boolean;
   heading: number | null; // 1 to 6 or null for paragraph
   bulletList: boolean;
   numberedList: boolean;
   taskList: boolean;
   blockquote: boolean;
   codeBlock: boolean;
+  alertType: 'NOTE' | 'TIP' | 'IMPORTANT' | 'WARNING' | 'CAUTION' | null;
+  alignment: 'left' | 'center' | 'right' | null;
 }
 
 /**
@@ -29,12 +37,20 @@ export function getActiveFormatState(canvas: HTMLElement): ActiveFormatState {
     code: false,
     link: false,
     math: false,
+    color: null,
+    glow: 'none',
+    highlight: false,
+    kbd: false,
+    subscript: false,
+    superscript: false,
     heading: null,
     bulletList: false,
     numberedList: false,
     taskList: false,
     blockquote: false,
     codeBlock: false,
+    alertType: null,
+    alignment: null,
   };
 
   if (!selection || selection.rangeCount === 0) {
@@ -46,6 +62,8 @@ export function getActiveFormatState(canvas: HTMLElement): ActiveFormatState {
     state.bold = document.queryCommandState('bold');
     state.italic = document.queryCommandState('italic');
     state.strikethrough = document.queryCommandState('strikeThrough');
+    state.subscript = document.queryCommandState('subscript');
+    state.superscript = document.queryCommandState('superscript');
   } catch {
     // Ignore error in headless/unsupported test environments
   }
@@ -63,8 +81,24 @@ export function getActiveFormatState(canvas: HTMLElement): ActiveFormatState {
       if (tag === 'CODE' && el.parentElement?.tagName.toUpperCase() !== 'PRE') state.code = true;
       if (tag === 'A') state.link = true;
       if (el.classList.contains('math') || el.hasAttribute('data-tex') || el.classList.contains('katex')) state.math = true;
-      if (tag === 'BLOCKQUOTE') state.blockquote = true;
+      if (tag === 'MARK') state.highlight = true;
+      if (tag === 'KBD') state.kbd = true;
+      if (tag === 'SUB') state.subscript = true;
+      if (tag === 'SUP') state.superscript = true;
+      if (tag === 'BLOCKQUOTE' && !el.classList.contains('markdown-alert')) state.blockquote = true;
       if (tag === 'PRE') state.codeBlock = true;
+
+      // Color and Glow
+      if (el.style.color) {
+        state.color = el.style.color;
+      }
+      if (el.style.textShadow) {
+        if (el.style.textShadow.includes('12px') || el.style.textShadow.includes('20px')) {
+          state.glow = 'neon';
+        } else if (el.style.textShadow !== 'none') {
+          state.glow = 'soft';
+        }
+      }
 
       // Check for Headings H1 to H6
       if (/^H[1-6]$/.test(tag)) {
@@ -85,6 +119,22 @@ export function getActiveFormatState(canvas: HTMLElement): ActiveFormatState {
       if (tag === 'LI' && el.classList.contains('task-list-item')) {
         state.taskList = true;
       }
+
+      // Check for GitHub Alerts
+      if (el.classList.contains('markdown-alert')) {
+        if (el.classList.contains('markdown-alert-note')) state.alertType = 'NOTE';
+        else if (el.classList.contains('markdown-alert-tip')) state.alertType = 'TIP';
+        else if (el.classList.contains('markdown-alert-important')) state.alertType = 'IMPORTANT';
+        else if (el.classList.contains('markdown-alert-warning')) state.alertType = 'WARNING';
+        else if (el.classList.contains('markdown-alert-caution')) state.alertType = 'CAUTION';
+      }
+
+      // Check for alignment
+      const alignAttr = el.getAttribute('align');
+      const textAlign = el.style.textAlign;
+      if (alignAttr === 'center' || textAlign === 'center') state.alignment = 'center';
+      else if (alignAttr === 'right' || textAlign === 'right') state.alignment = 'right';
+      else if (alignAttr === 'left' || textAlign === 'left') state.alignment = 'left';
     }
     node = node.parentNode;
   }
@@ -149,7 +199,6 @@ export function toggleInlineCode(canvas: HTMLElement): void {
     code.appendChild(selectedText);
     range.insertNode(code);
 
-    // Re-select newly created code node
     const newRange = document.createRange();
     newRange.selectNodeContents(code);
     selection.removeAllRanges();
@@ -278,20 +327,337 @@ export function applyMath(tex: string | null, isDisplay: boolean = false, canvas
 }
 
 /**
- * Removes all inline formatting (bold, italic, strike, code, link) from selection.
+ * Applies custom text color and optional neon glow intensity.
  */
-export function clearFormatting(_canvas?: HTMLElement): void {
+export function applyTextColorAndGlow(
+  color: string | null,
+  glowLevel: 'none' | 'soft' | 'neon' = 'none',
+  canvas?: HTMLElement
+): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  const range = selection.getRangeAt(0);
+
+  // Check if selection is already inside a colored span
+  let spanEl: HTMLElement | null = null;
+  if (canvas) {
+    let node: Node | null = selection.anchorNode;
+    while (node && node !== canvas) {
+      if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName.toUpperCase() === 'SPAN') {
+        const el = node as HTMLElement;
+        if (el.style.color || el.style.textShadow || el.classList.contains('colored-text')) {
+          spanEl = el;
+          break;
+        }
+      }
+      node = node.parentNode;
+    }
+  }
+
+  // Case 1: Resetting Color / Glow
+  if (!color) {
+    if (spanEl) {
+      spanEl.style.color = '';
+      spanEl.style.textShadow = '';
+      spanEl.classList.remove('colored-text');
+      if (!spanEl.getAttribute('style')?.trim()) {
+        const parent = spanEl.parentNode;
+        if (parent) {
+          while (spanEl.firstChild) {
+            parent.insertBefore(spanEl.firstChild, spanEl);
+          }
+          parent.removeChild(spanEl);
+        }
+      }
+    }
+    return;
+  }
+
+  // Calculate text-shadow glow
+  let shadow = 'none';
+  if (glowLevel === 'soft') {
+    shadow = `0 0 8px ${color}99`;
+  } else if (glowLevel === 'neon') {
+    shadow = `0 0 12px ${color}, 0 0 22px ${color}88`;
+  }
+
+  if (spanEl) {
+    spanEl.style.color = color;
+    spanEl.style.textShadow = shadow;
+    spanEl.classList.add('colored-text');
+  } else if (!range.collapsed) {
+    const selectedContent = range.extractContents();
+    const span = document.createElement('span');
+    span.className = 'colored-text';
+    span.style.color = color;
+    span.style.textShadow = shadow;
+    span.appendChild(selectedContent);
+    range.insertNode(span);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(span);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+  }
+}
+
+/**
+ * Applies a translucent marker highlight (`<mark>`) to the selected text.
+ */
+export function applyHighlight(color: string | null, canvas?: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  const range = selection.getRangeAt(0);
+
+  // Check if selection is already inside a mark tag
+  let markEl: HTMLElement | null = null;
+  if (canvas) {
+    let node: Node | null = selection.anchorNode;
+    while (node && node !== canvas) {
+      if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName.toUpperCase() === 'MARK') {
+        markEl = node as HTMLElement;
+        break;
+      }
+      node = node.parentNode;
+    }
+  }
+
+  if (!color) {
+    // Remove mark
+    if (markEl) {
+      const parent = markEl.parentNode;
+      if (parent) {
+        while (markEl.firstChild) {
+          parent.insertBefore(markEl.firstChild, markEl);
+        }
+        parent.removeChild(markEl);
+      }
+    }
+    return;
+  }
+
+  if (markEl) {
+    markEl.style.backgroundColor = color;
+  } else if (!range.collapsed) {
+    const selectedContent = range.extractContents();
+    const mark = document.createElement('mark');
+    mark.style.backgroundColor = color;
+    mark.appendChild(selectedContent);
+    range.insertNode(mark);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(mark);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+  }
+}
+
+/**
+ * Toggles a keycap badge (`<kbd>...</kbd>`) on selection.
+ */
+export function toggleKbd(canvas: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  const range = selection.getRangeAt(0);
+
+  let kbdEl: HTMLElement | null = null;
+  let node: Node | null = selection.anchorNode;
+  while (node && node !== canvas) {
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName.toUpperCase() === 'KBD') {
+      kbdEl = node as HTMLElement;
+      break;
+    }
+    node = node.parentNode;
+  }
+
+  if (kbdEl) {
+    const parent = kbdEl.parentNode;
+    if (parent) {
+      while (kbdEl.firstChild) {
+        parent.insertBefore(kbdEl.firstChild, kbdEl);
+      }
+      parent.removeChild(kbdEl);
+    }
+  } else if (!range.collapsed) {
+    const selectedContent = range.extractContents();
+    const kbd = document.createElement('kbd');
+    kbd.appendChild(selectedContent);
+    range.insertNode(kbd);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(kbd);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+  }
+}
+
+/**
+ * Toggles subscript formatting (`<sub>...</sub>`).
+ */
+export function toggleSubscript(): void {
+  document.execCommand('subscript', false);
+}
+
+/**
+ * Toggles superscript formatting (`<sup>...</sup>`).
+ */
+export function toggleSuperscript(): void {
+  document.execCommand('superscript', false);
+}
+
+/**
+ * Applies or toggles a GitHub Alert callout box (`[!NOTE]`, `[!WARNING]`, etc.).
+ */
+export function applyGitHubAlert(
+  alertType: 'NOTE' | 'TIP' | 'IMPORTANT' | 'WARNING' | 'CAUTION' | null,
+  canvas: HTMLElement
+): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  // Find nearest block container
+  let blockEl: HTMLElement | null = null;
+  let node: Node | null = selection.anchorNode;
+  while (node && node !== canvas) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const tag = el.tagName.toUpperCase();
+      if (tag === 'P' || tag === 'BLOCKQUOTE' || el.classList.contains('markdown-alert') || /^H[1-6]$/.test(tag)) {
+        blockEl = el;
+        break;
+      }
+    }
+    node = node.parentNode;
+  }
+
+  if (!blockEl) return;
+
+  // If removing alert
+  if (!alertType) {
+    if (blockEl.classList.contains('markdown-alert')) {
+      const titleEl = blockEl.querySelector('.markdown-alert-title');
+      titleEl?.remove();
+      const p = document.createElement('p');
+      p.innerHTML = blockEl.innerHTML;
+      blockEl.parentNode?.replaceChild(p, blockEl);
+    }
+    return;
+  }
+
+  const typeLower = alertType.toLowerCase();
+  const alertTitle = alertType.charAt(0) + alertType.slice(1).toLowerCase();
+
+  // If already an alert, change its type
+  if (blockEl.classList.contains('markdown-alert')) {
+    blockEl.className = `markdown-alert markdown-alert-${typeLower}`;
+    const titleEl = blockEl.querySelector('.markdown-alert-title');
+    if (titleEl) {
+      titleEl.textContent = alertTitle;
+    }
+    return;
+  }
+
+  // Create new alert container
+  const alertContainer = document.createElement('div');
+  alertContainer.className = `markdown-alert markdown-alert-${typeLower}`;
+
+  const titlePara = document.createElement('p');
+  titlePara.className = 'markdown-alert-title';
+  titlePara.textContent = alertTitle;
+
+  const contentPara = document.createElement('p');
+  contentPara.innerHTML = blockEl.innerHTML;
+
+  alertContainer.appendChild(titlePara);
+  alertContainer.appendChild(contentPara);
+
+  blockEl.parentNode?.replaceChild(alertContainer, blockEl);
+}
+
+/**
+ * Inserts an interactive collapsible details / spoiler accordion (`<details><summary>`).
+ */
+export function insertDetailsSpoiler(title: string = 'Click to expand'): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  const range = selection.getRangeAt(0);
+  const selectedText = range.extractContents();
+
+  const details = document.createElement('details');
+  const summary = document.createElement('summary');
+  summary.textContent = title;
+
+  const bodyPara = document.createElement('p');
+  if (selectedText.textContent?.trim()) {
+    bodyPara.appendChild(selectedText);
+  } else {
+    bodyPara.textContent = 'Hidden details content goes here...';
+  }
+
+  details.appendChild(summary);
+  details.appendChild(bodyPara);
+
+  range.insertNode(details);
+
+  // Position cursor inside bodyPara
+  const afterRange = document.createRange();
+  afterRange.selectNodeContents(bodyPara);
+  afterRange.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(afterRange);
+}
+
+/**
+ * Applies horizontal text alignment (`left`, `center`, `right`).
+ */
+export function applyAlignment(align: 'left' | 'center' | 'right', canvas: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  let blockEl: HTMLElement | null = null;
+  let node: Node | null = selection.anchorNode;
+  while (node && node !== canvas) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const tag = el.tagName.toUpperCase();
+      if (tag === 'P' || tag === 'DIV' || /^H[1-6]$/.test(tag) || tag === 'BLOCKQUOTE') {
+        blockEl = el;
+        break;
+      }
+    }
+    node = node.parentNode;
+  }
+
+  if (blockEl) {
+    if (align === 'left') {
+      blockEl.style.textAlign = '';
+      blockEl.removeAttribute('align');
+    } else {
+      blockEl.style.textAlign = align;
+      blockEl.setAttribute('align', align);
+    }
+  }
+}
+
+/**
+ * Removes all inline formatting (bold, italic, strike, code, link, color, glow, highlight, kbd) from selection.
+ */
+export function clearFormatting(): void {
   document.execCommand('removeFormat', false);
   document.execCommand('unlink', false);
 
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return;
 
-  // Also remove code or mark tags within range if present
+  // Also remove code, mark, kbd, sub, sup, colored spans within range
   const range = selection.getRangeAt(0);
   const container = range.commonAncestorContainer;
   const elements = container.nodeType === Node.ELEMENT_NODE
-    ? (container as HTMLElement).querySelectorAll('code, mark, s, del')
+    ? (container as HTMLElement).querySelectorAll('code, mark, s, del, kbd, sub, sup, span.colored-text, span[style]')
     : [];
 
   elements.forEach((el) => {
@@ -342,55 +708,43 @@ export function toggleTaskList(canvas: HTMLElement): void {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return;
 
-  // First convert to unordered list if not already in a list
-  const active = getActiveFormatState(canvas);
-  if (!active.bulletList && !active.taskList) {
+  const state = getActiveFormatState(canvas);
+  if (state.taskList) {
     document.execCommand('insertUnorderedList', false);
+    return;
   }
 
-  // Find parent UL and LI
-  let node: Node | null = selection.anchorNode;
-  let liEl: HTMLLIElement | null = null;
-  let ulEl: HTMLUListElement | null = null;
+  // Convert to unordered list first
+  document.execCommand('insertUnorderedList', false);
 
+  // Find the list and add tasklist classes + checkbox
+  let node: Node | null = selection.anchorNode;
   while (node && node !== canvas) {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
-      if (el.tagName.toUpperCase() === 'LI' && !liEl) {
-        liEl = el as HTMLLIElement;
-      }
-      if (el.tagName.toUpperCase() === 'UL' && !ulEl) {
-        ulEl = el as HTMLUListElement;
-      }
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName.toUpperCase() === 'UL') {
+      const ul = node as HTMLUListElement;
+      ul.classList.add('contains-task-list');
+
+      const lis = ul.querySelectorAll('li');
+      lis.forEach((li) => {
+        if (!li.querySelector('input[type="checkbox"]')) {
+          li.classList.add('task-list-item');
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.className = 'task-list-item-checkbox';
+          cb.addEventListener('change', () => {
+            if (cb.checked) {
+              cb.setAttribute('checked', 'checked');
+            } else {
+              cb.removeAttribute('checked');
+            }
+            canvas.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          li.insertBefore(cb, li.firstChild);
+        }
+      });
+      break;
     }
     node = node.parentNode;
-  }
-
-  if (ulEl && liEl) {
-    const isTask = liEl.classList.contains('task-list-item');
-    if (isTask) {
-      // Revert from task list to normal list item
-      liEl.classList.remove('task-list-item');
-      const checkbox = liEl.querySelector('input[type="checkbox"]');
-      if (checkbox) checkbox.remove();
-
-      // If no other task items in UL, remove container class
-      if (!ulEl.querySelector('.task-list-item')) {
-        ulEl.classList.remove('contains-task-list');
-      }
-    } else {
-      // Convert to task list item
-      ulEl.classList.add('contains-task-list');
-      liEl.classList.add('task-list-item');
-
-      // Prepend checkbox if not already present
-      if (!liEl.querySelector('input[type="checkbox"]')) {
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'task-list-item-checkbox';
-        liEl.insertBefore(checkbox, liEl.firstChild);
-      }
-    }
   }
 }
 
@@ -398,8 +752,8 @@ export function toggleTaskList(canvas: HTMLElement): void {
  * Toggles a blockquote wrapper for the current block.
  */
 export function toggleBlockquote(canvas: HTMLElement): void {
-  const active = getActiveFormatState(canvas);
-  if (active.blockquote) {
+  const state = getActiveFormatState(canvas);
+  if (state.blockquote) {
     document.execCommand('formatBlock', false, '<p>');
   } else {
     document.execCommand('formatBlock', false, '<blockquote>');
@@ -407,27 +761,23 @@ export function toggleBlockquote(canvas: HTMLElement): void {
 }
 
 /**
- * Inserts a fenced code block with optional syntax language.
+ * Inserts a fenced code block (`<pre><code>...</code></pre>`).
  */
-export function insertCodeBlock(_canvas?: HTMLElement, language: string = ''): void {
+export function insertCodeBlock(): void {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return;
 
   const range = selection.getRangeAt(0);
-  const selectedText = range.toString() || 'code here';
+  const selectedText = range.extractContents().textContent || 'code';
 
   const pre = document.createElement('pre');
   const code = document.createElement('code');
-  if (language) {
-    code.className = `language-${language.trim()}`;
-  }
   code.textContent = selectedText;
   pre.appendChild(code);
 
-  range.deleteContents();
   range.insertNode(pre);
 
-  // Position cursor inside code block
+  // Place selection inside code block
   const newRange = document.createRange();
   newRange.selectNodeContents(code);
   selection.removeAllRanges();
@@ -435,7 +785,7 @@ export function insertCodeBlock(_canvas?: HTMLElement, language: string = ''): v
 }
 
 /**
- * Inserts a horizontal rule divider at the cursor.
+ * Inserts a horizontal thematic divider (`<hr>`).
  */
 export function insertHorizontalRule(): void {
   document.execCommand('insertHorizontalRule', false);

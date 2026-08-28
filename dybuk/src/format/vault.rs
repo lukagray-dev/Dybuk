@@ -146,6 +146,47 @@ pub fn open(data: &[u8], password: &str) -> Result<Zeroizing<String>, FormatErro
     Ok(Zeroizing::new(content))
 }
 
+/// Decrypts a `.dybuk` binary payload using a pre-derived 32-byte session key.
+///
+/// This avoids repeating the memory-hard Argon2id key derivation process when re-opening
+/// or hot-reloading an already unlocked document.
+///
+/// # Arguments
+/// * `data` - The raw byte slice of the `.dybuk` file.
+/// * `key` - The 32-byte session key from [`crate::session::SessionStore`].
+///
+/// # Errors
+/// * Returns [`FormatError::TruncatedData`] if `data` is shorter than 33 bytes.
+/// * Returns [`FormatError::InvalidMagicBytes`] or [`FormatError::UnsupportedVersion`] on invalid header.
+/// * Returns [`FormatError::Crypto`] if key is incorrect or data was tampered with.
+/// * Returns [`FormatError::InvalidUtf8`] if decrypted plaintext is not valid UTF-8.
+pub fn open_with_key(data: &[u8], key: &[u8; 32]) -> Result<Zeroizing<String>, FormatError> {
+    if data.len() < MIN_VAULT_HEADER_SIZE {
+        return Err(FormatError::TruncatedData {
+            expected_at_least: MIN_VAULT_HEADER_SIZE,
+            found: data.len(),
+        });
+    }
+
+    // Step 1: Validate header signature
+    header::parse_header(&data[..HEADER_SIZE])?;
+
+    // Step 2: Extract nonce (bytes 21..33)
+    let nonce_start = HEADER_SIZE + SALT_SIZE;
+    let nonce_end = nonce_start + NONCE_SIZE;
+    let mut nonce = [0u8; NONCE_SIZE];
+    nonce.copy_from_slice(&data[nonce_start..nonce_end]);
+
+    // Step 3: Decrypt ciphertext (bytes 33..end)
+    let ciphertext = &data[nonce_end..];
+    let mut decrypted_bytes = cipher::decrypt(ciphertext, key, &nonce)?;
+
+    let byte_vec = std::mem::take(&mut *decrypted_bytes);
+    let content = String::from_utf8(byte_vec).map_err(|source| FormatError::InvalidUtf8 { source })?;
+
+    Ok(Zeroizing::new(content))
+}
+
 /// Derives a 32-byte symmetric key for caching in the in-memory [`crate::session::SessionStore`].
 ///
 /// This avoids re-running expensive Argon2id computations repeatedly during the lifetime of an open file.
@@ -213,6 +254,12 @@ mod tests {
         // Open with correct password.
         let opened_text = open(&sealed_data, password).expect("Opening with correct password should succeed");
         assert_eq!(&*opened_text, plaintext);
+
+        // Derive session key and test open_with_key
+        let salt = extract_salt(&sealed_data).expect("Extracting salt should succeed");
+        let session_key = derive_key_for_session(password, &salt).expect("Deriving key should succeed");
+        let opened_with_key = open_with_key(&sealed_data, &session_key).expect("Opening with session key should succeed");
+        assert_eq!(&*opened_with_key, plaintext);
     }
 
     #[test]

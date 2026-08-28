@@ -3,19 +3,23 @@
 pub mod main_content;
 pub mod sidebar;
 pub mod titlebar;
+pub mod watcher;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use dybuk::SessionStore;
 pub use sidebar::commands::AppState;
+pub use watcher::ActiveDocumentWatcher;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let state = AppState {
-        session_store: Mutex::new(SessionStore::new()),
+        session_store: Arc::new(Mutex::new(SessionStore::new())),
     };
+    let watcher = ActiveDocumentWatcher::new();
 
     tauri::Builder::default()
         .manage(state)
+        .manage(watcher)
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             // Titlebar Window Actions
@@ -41,6 +45,9 @@ pub fn run() {
             sidebar::commands::check_vault_unlocked,
             sidebar::commands::get_default_documents_dir,
             sidebar::commands::remove_recent_cmd,
+            // Active Document File Watcher Actions
+            watcher::commands::watch_active_document,
+            watcher::commands::unwatch_active_document,
             // Markdown WYSIWYG Actions
             main_content::markdown::render_markdown,
         ])

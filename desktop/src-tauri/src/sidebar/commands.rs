@@ -1,7 +1,5 @@
-//! Sidebar and document I/O commands for opening, saving, unlocking, and managing documents.
-
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 
@@ -9,7 +7,7 @@ use dybuk::{create_document, recents, NewDocument, SessionStore};
 
 /// State holding the shared session key store.
 pub struct AppState {
-    pub session_store: Mutex<SessionStore>,
+    pub session_store: Arc<Mutex<SessionStore>>,
 }
 
 /// Serializable entry for documents displayed in the sidebar.
@@ -201,12 +199,16 @@ pub async fn read_document(
 pub async fn save_document(
     app: AppHandle,
     state: State<'_, AppState>,
+    watcher: State<'_, crate::watcher::ActiveDocumentWatcher>,
     path: String,
     content: String,
     password: Option<String>,
 ) -> Result<(), String> {
     let file_path = PathBuf::from(&path);
     let is_dybuk = is_dybuk_path(&file_path);
+
+    // Notify watcher to suppress self-triggered external change events
+    watcher.notify_internal_save(&file_path);
 
     if is_dybuk {
         let pass = password.ok_or_else(|| "Password is required to save encrypted vault".to_string())?;

@@ -34,7 +34,7 @@ pub use session::SessionStore;
 pub use document::{create_document, CreatedDocument, DocumentError, NewDocument};
 
 // Re-export public vault encryption/decryption functions.
-pub use format::vault::{open, seal};
+pub use format::vault::{open, open_with_key, seal};
 
 // Re-export markdown-to-HTML rendering engine.
 pub use markdown::render_to_html;

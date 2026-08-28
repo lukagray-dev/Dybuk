@@ -1,11 +1,19 @@
-// Document editor WYSIWYG canvas and topbar controller for Dybuk
-// Manages pulldown-cmark compilation on open, floating toolbar lifecycle, and clean GFM serialization on save
+// Document editor WYSIWYG canvas, disk watcher subscriber, and topbar controller for Dybuk
+// Manages pulldown-cmark compilation on open, real-time hot-reloading on disk changes,
+// floating toolbar lifecycle, and clean GFM serialization on save
 
+import { invokeIpc, listenIpcEvent } from '../../shared/ipc.js';
 import { appState } from '../../shared/state.js';
 import { lockVaultIpc, readDocumentIpc, saveDocumentIpc } from '../ipc.js';
 import { showUnlockVaultDialog } from '../unlock-dialog.js';
 import { FloatingToolbar } from './floating-toolbar.js';
 import { domToMarkdown, markdownToDom } from './serializer.js';
+
+interface ExternalChangePayload {
+  path: string;
+  content: string;
+  is_dybuk: boolean;
+}
 
 let activePassword = '';
 let floatingToolbar: FloatingToolbar | null = null;
@@ -20,6 +28,7 @@ export function initEditor(): void {
   setupEditorActions();
   setupKeyboardShortcuts();
   setupAppStateSubscriber();
+  setupDiskWatcherSubscriber();
 }
 
 /**
@@ -126,8 +135,46 @@ function setupAppStateSubscriber(): void {
 }
 
 /**
+ * Subscribes to Tauri filesystem events when the currently active document is modified on disk.
+ * Automatically hot-reloads clean documents into the canvas without requiring manual reload.
+ */
+function setupDiskWatcherSubscriber(): void {
+  const canvas = document.getElementById('editor-canvas');
+  if (!canvas) return;
+
+  listenIpcEvent<ExternalChangePayload>('active-document-changed-on-disk', async (payload) => {
+    const doc = appState.getCurrentDoc();
+    if (!doc.path) return;
+
+    // Normalize paths to compare accurately across slash conventions
+    const currentNorm = doc.path.replace(/\\/g, '/').toLowerCase();
+    const payloadNorm = payload.path.replace(/\\/g, '/').toLowerCase();
+
+    if (currentNorm !== payloadNorm && !currentNorm.endsWith(payloadNorm) && !payloadNorm.endsWith(currentNorm)) {
+      return;
+    }
+
+    // If local document has no unsaved edits, hot-reload immediately
+    if (!doc.isDirty) {
+      console.debug(`[HotReload] Active file "${doc.name}" changed on disk. Re-rendering canvas.`);
+      await markdownToDom(payload.content, canvas);
+      updateStats();
+    } else {
+      console.warn(`[HotReload] Active file "${doc.name}" changed on disk, but local editor has unsaved changes. Preserving local edits.`);
+      const dirtyDot = document.getElementById('topbar-dirty-indicator');
+      if (dirtyDot) {
+        dirtyDot.title = 'Document has unsaved local edits and changed on disk';
+      }
+    }
+  }).catch((err) => {
+    console.error('Failed to register disk watcher event listener:', err);
+  });
+}
+
+/**
  * Opens a document into the WYSIWYG canvas.
  * Compiles raw markdown into semantic HTML using the Rust pulldown-cmark backend.
+ * Automatically starts watching the target file on disk for external hot-reloads.
  */
 export async function openDocument(path: string, name: string, isDybuk: boolean): Promise<boolean> {
   const canvas = document.getElementById('editor-canvas');
@@ -162,6 +209,13 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
       isUnlocked: true,
     });
 
+    // Start watching active file on disk
+    try {
+      await invokeIpc('watch_active_document', { path });
+    } catch (watchErr) {
+      console.warn('[Watcher] Failed to attach file watcher:', watchErr);
+    }
+
     updateStats();
     canvas.focus();
     return true;
@@ -179,6 +233,13 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
         isDirty: false,
         isUnlocked: true,
       });
+
+      // Start watching active file on disk
+      try {
+        await invokeIpc('watch_active_document', { path });
+      } catch (watchErr) {
+        console.warn('[Watcher] Failed to attach file watcher:', watchErr);
+      }
 
       updateStats();
       canvas.focus();
@@ -212,7 +273,7 @@ export async function saveActiveDocument(): Promise<void> {
 }
 
 /**
- * Locks the current active vault, clears session key, and resets editor state.
+ * Locks the current active vault, clears session key, unmounts watcher, and resets editor state.
  */
 export async function lockActiveDocument(): Promise<void> {
   const doc = appState.getCurrentDoc();
@@ -220,6 +281,9 @@ export async function lockActiveDocument(): Promise<void> {
   if (!doc.path || !doc.isDybuk) return;
 
   try {
+    // Stop file watcher
+    await invokeIpc('unwatch_active_document');
+
     await lockVaultIpc(doc.path);
     activePassword = '';
     if (canvas) canvas.innerHTML = '';

@@ -2,6 +2,7 @@
 
 import { initSidebar } from './left-sidebar/sidebar.js';
 import { initEditor } from './main-content/canvas/editor.js';
+import { initEmptyState } from './main-content/empty-state.js';
 import { initTitlebar } from './titlebar/titlebar.js';
 
 export function initApp(): void {
@@ -13,6 +14,9 @@ export function initApp(): void {
 
   // Initialize main editor canvas & topbar
   initEditor();
+
+  // Initialize empty state buttons and dropdowns
+  initEmptyState();
 }
 
 // Auto-initialize when DOM is ready

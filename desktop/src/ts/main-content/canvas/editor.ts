@@ -108,6 +108,11 @@ function setupAppStateSubscriber(): void {
       btnLock.style.display = doc.isDybuk && doc.path ? 'inline-flex' : 'none';
     }
 
+    const mainTopbar = document.getElementById('main-content-topbar');
+    if (mainTopbar) {
+      mainTopbar.style.display = doc.path ? 'flex' : 'none';
+    }
+
     if (emptyState && scrollPane) {
       if (doc.path) {
         emptyState.style.display = 'none';

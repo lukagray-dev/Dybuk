@@ -44,13 +44,11 @@
                   </div>
                   <div class="dropdown-submenu">
                     <div id="menu-item-new-markdown" class="dropdown-item" data-type="md">
-                      <span class="ui-icon icon-file-md"></span>
-                      <span>Standard Document (.md)</span>
+                      <svg class="dropdown-item-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     </div>
                     <div id="menu-item-new-dybuk" class="dropdown-item" data-type="dybuk">
-                      <span class="ui-icon icon-file-dybuk"></span>
+                      <svg class="dropdown-item-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                       <span>Encrypted Vault (.dybuk)</span>
-                    </div>
                   </div>
                 </div>
                 <div id="menu-item-open-doc" class="dropdown-item">
@@ -226,10 +224,9 @@
         <!-- Main Content Area: Topbar + Writing Canvas -->
         <section id="content-pane" class="main-content-layout">
           <!-- Main Content Topbar -->
-          <header id="main-content-topbar" class="main-topbar">
+          <header id="main-content-topbar" class="main-topbar" style="display: none;">
             <!-- Left: Document Title & Badges -->
             <div class="topbar-left-section">
-              <div class="topbar-doc-title-wrapper">
                 <h2 id="topbar-doc-title" class="topbar-doc-title">Untitled</h2>
                 <span id="topbar-dirty-indicator" class="topbar-dirty-indicator" title="Unsaved changes">•</span>
               </div>
@@ -254,31 +251,21 @@
 
           <!-- Empty State / Welcome Screen when no document is active -->
           <div id="editor-empty-state" class="editor-empty-state">
-            <img class="empty-state-logo" src="assets/logo.svg" alt="Dybuk Logo" />
-            <h3 class="empty-state-title">Put your thoughts in a box</h3>
-            <p class="empty-state-desc">Select an existing document from the sidebar, or create a new one to begin writing.</p>
-            <div class="empty-state-shortcuts">
-              <div class="empty-state-shortcut-item">
-                <span class="key-badge">Ctrl+N</span>
-                <span>New document</span>
+            <div class="empty-state-card">
+              <div class="empty-state-brand">
+                <img class="empty-state-logo" src="assets/logo.svg" alt="Dybuk Logo" />
+                <h2 class="empty-state-title">Put your thoughts in a box</h2>
+                <p class="empty-state-desc">Create a secure encrypted vault or standard markdown document to begin writing.</p>
               </div>
-              <div class="empty-state-shortcut-item">
-                <span class="key-badge">Ctrl+B</span>
-                <span>Toggle sidebar</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
 
-      <!-- Mini Floating Action Trigger (•••) -->
-      <button id="floating-trigger" class="floating-trigger" title="Formatting options" aria-label="Formatting options">
-        <svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
-      </button>
-
-      <!-- Floating Bubble Formatting Toolbar (Two Rows) -->
-      <div id="floating-toolbar" class="floating-toolbar double-row" role="toolbar" aria-label="Text Formatting">
-        <!-- Row 1: Inline Styles, Effects, Math & Colors -->
+              <!-- Action Buttons -->
+              <div class="empty-state-actions">
+                <!-- New Document Dropdown -->
+                  </button>
+                  <div id="empty-new-doc-dropdown" class="empty-dropdown-menu">
+                    <div class="empty-dropdown-item" data-type="md">
+                      <svg class="dropdown-item-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  <span class="key-badge">Ctrl+B</span>
         <div class="toolbar-row toolbar-row-inline">
           <!-- Text Styling Group -->
           <div class="toolbar-group">

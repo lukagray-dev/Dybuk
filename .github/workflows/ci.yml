@@ -1,0 +1,53 @@
+name: CI
+
+# Triggers on push to dev branch and on any Pull Request targeting main
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Workspace Tests & Lint (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: clippy
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Desktop Frontend
+        shell: powershell
+        run: |
+          cd desktop
+          npm install
+          npm run build
+          cd ..
+
+      - name: Cache cargo registry + target dir
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run cargo clippy
+        shell: powershell
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Run cargo test
+        shell: powershell
+        run: cargo test --workspace
+

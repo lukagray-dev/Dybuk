@@ -1,0 +1,103 @@
+# ==============================================================================
+# Dybuk - Feature Request / Proposal Issue Template
+# ==============================================================================
+# This template is used when proposing new features, formatting capabilities,
+# cryptographic improvements, or UI enhancements for Dybuk.
+# ==============================================================================
+
+name: Feature Request / Proposal
+description: Propose a new feature, formatting tool, cryptographic enhancement, or UI improvement for Dybuk.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+
+body:
+  # Guidance notice
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping shape the future of **Dybuk**!
+        
+        > **Note for Contributors:**
+        > Dybuk prioritizes clean, distraction-free writing, military-grade client-side encryption, and deterministic performance. Proposing features here helps align design and cryptographic safety before writing code.
+
+  # Subsystem targeted by this proposal
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target Subsystem / Area
+      description: Select the primary area this feature request relates to.
+      options:
+        - "Desktop Application (Tauri v2 + TypeScript Canvas)"
+        - "WYSIWYG Markdown Editor & Formatting Tools"
+        - "Cryptographic Security & Key Management"
+        - "Vault Serialization & Container Formats"
+        - "File Watcher & Real-Time Hot-Reloading"
+        - "Sidebar, Navigation & File Management"
+        - "Titlebar, Shortcuts & Window Actions"
+        - "Developer Tooling & Scripts"
+        - "Other"
+    validations:
+      required: true
+
+  # Problem statement and motivation
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement / Motivation
+      description: Is your feature request related to a specific limitation, pain point, or use case?
+      placeholder: "A clear description of what challenge or workflow limitation you are experiencing..."
+    validations:
+      required: true
+
+  # Proposed solution and behavior description
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution & User Experience
+      description: Describe the feature you would like to see, how it should work, and what the user experience looks like.
+      placeholder: "Describe how this feature should function, including UI controls, keyboard shortcuts, or Rust APIs..."
+    validations:
+      required: true
+
+  # Cryptographic & Security Impact
+  - type: textarea
+    id: security_impact
+    attributes:
+      label: Security & Privacy Impact
+      description: Does this feature touch encryption, plaintext caching, memory zeroization, or file serialization?
+      placeholder: "Specify if this changes .dybuk format, key derivation, or local data isolation..."
+    validations:
+      required: false
+
+  # Alternatives and workarounds evaluated
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative designs, libraries, or workarounds you have considered.
+      placeholder: "A clear description of any alternative solutions you thought about..."
+    validations:
+      required: false
+
+  # Additional mockups, diagrams, or references
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context & Mockups
+      description: Add any other context, UI wireframes, or reference documentation here.
+      placeholder: "Links, diagrams, or additional implementation notes..."
+    validations:
+      required: false
+
+  # Pre-submission confirmation
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Pre-Submission Checklist
+      description: Please verify before submitting.
+      options:
+        - label: I have searched existing issues to ensure this proposal is not a duplicate.
+          required: true
+        - label: I have read the project's design philosophy and confirm this aligns with Dybuk's distraction-free writing principles.
+          required: true
+

@@ -1,0 +1,77 @@
+# ==============================================================================
+# Dybuk - Documentation Improvement Issue Template
+# ==============================================================================
+# This template is used when reporting errors, ambiguities, outdated sections,
+# or missing architecture documentation across Dybuk's guides and code docs.
+# ==============================================================================
+
+name: Documentation Improvement
+description: Suggest improvements, report errors, or request additions to Dybuk documentation.
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+
+body:
+  # Guidance notice
+  - type: markdown
+    attributes:
+      value: |
+        Accurate, clear, and comprehensive documentation is essential for the **Dybuk** project.
+        Thank you for helping us keep our guides and architecture notes up to date!
+
+  # Target documentation area
+  - type: dropdown
+    id: doc_area
+    attributes:
+      label: Documentation Area
+      description: Select the document or section that needs improvement.
+      options:
+        - "README.md / Quickstart Guide"
+        - "CONTRIBUTING.md / Development Setup Guide"
+        - "SECURITY.md / Disclosure Policy"
+        - "Vault Binary Specification (.dybuk Format Layout)"
+        - "Rust API Documentation (rustdoc in dybuk core crate)"
+        - "Other / New Guide Request"
+    validations:
+      required: true
+
+  # Page or file link
+  - type: input
+    id: doc_link
+    attributes:
+      label: File Path or URL
+      description: Provide the specific file path or link to the section requiring changes.
+      placeholder: "e.g., README.md#the-dybuk-format or dybuk/src/format/vault.rs"
+    validations:
+      required: false
+
+  # Issue description
+  - type: textarea
+    id: issue_description
+    attributes:
+      label: Description of the Problem / Gap
+      description: What is inaccurate, missing, confusing, or out of date?
+      placeholder: "Describe what information is missing or unclear..."
+    validations:
+      required: true
+
+  # Proposed improvements
+  - type: textarea
+    id: proposed_changes
+    attributes:
+      label: Suggested Changes or Additions
+      description: Provide the proposed wording, corrected code snippets, or markdown content if you have recommendations.
+      placeholder: "Paste proposed wording or structural improvements here..."
+    validations:
+      required: false
+
+  # Verification checklist
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please verify before submitting.
+      options:
+        - label: I have verified that this issue is specifically about documentation and not a software bug or feature request.
+          required: true
+        - label: I would be interested in submitting a pull request to update the documentation.
+

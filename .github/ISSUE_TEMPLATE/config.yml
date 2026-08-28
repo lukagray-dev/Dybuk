@@ -1,0 +1,16 @@
+# GitHub Issue Chooser Configuration for Dybuk
+# Controls the issue creation experience, disallows blank issues, and offers verified contact routes.
+
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security Vulnerability Reporting
+    url: https://github.com/lukagray-dev/Dybuk/blob/main/SECURITY.md
+    about: Please report security vulnerabilities privately according to our security policy. Do not open public issues for cryptographic exploits.
+  - name: Community Discussions & Questions
+    url: https://github.com/lukagray-dev/Dybuk/discussions
+    about: Ask usage questions, share ideas, and connect with other Dybuk writers and developers.
+  - name: Repository Documentation
+    url: https://github.com/lukagray-dev/Dybuk/blob/main/README.md
+    about: Read guides covering the .dybuk encrypted vault format, WYSIWYG editor shortcuts, and local storage.
+

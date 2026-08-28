@@ -1,0 +1,151 @@
+# ==============================================================================
+# Dybuk - Bug Report Issue Template
+# ==============================================================================
+# This template is used when contributors or users encounter a defect, crash,
+# unexpected behavior, or broken component within Dybuk.
+# It captures environment details, reproduction steps, logs, and subsystem scopes.
+# ==============================================================================
+
+name: Bug Report
+description: File a bug report or unexpected runtime behavior in Dybuk.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+
+body:
+  # Guidance notice to ensure security disclosures and sensitive passwords are not leaked publicly
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report an issue and help improve **Dybuk**!
+        
+        > **Important Security Notice:**
+        > If you have discovered a suspected cryptographic flaw, key leak, or vulnerability in `.dybuk` vault handling, please do **NOT** submit it publicly here. Refer to our [Security Policy](https://github.com/lukagray-dev/Dybuk/blob/main/SECURITY.md) to report it privately.
+        >
+        > **Never include master passwords, private keys, or confidential file contents in logs or snippets.**
+
+  # Identify which crate or subsystem is experiencing the defect
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Subsystem / Component
+      description: Select the part of Dybuk where the issue occurred.
+      options:
+        - "Desktop Application (Tauri v2 + TypeScript Canvas)"
+        - "WYSIWYG Markdown Editor & Floating Toolbar"
+        - "Cryptographic Core & Key Derivation (Argon2id / AES-256-GCM)"
+        - "Vault Serialization & Container Format (.dybuk)"
+        - "File Watcher & Real-Time Hot-Reloading"
+        - "Session Store & In-Memory Key Management"
+        - "Sidebar, Document History & Recents"
+        - "Titlebar, Window Controls & File Menus"
+        - "Documentation / Build Infra / CI"
+        - "Other / Unsure"
+    validations:
+      required: true
+
+  # Version information for the Dybuk build
+  - type: input
+    id: version
+    attributes:
+      label: Dybuk Version / Build Commit
+      description: Provide the release tag (e.g. `v0.1.0`) or Git commit hash (from `git rev-parse --short HEAD`).
+      placeholder: "e.g., v0.1.0 or commit a1b2c3d"
+    validations:
+      required: true
+
+  # Operating system and CPU architecture
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Select your operating platform.
+      options:
+        - "Windows 11 (x86_64)"
+        - "Windows 10 (x86_64)"
+        - "Windows (ARM64)"
+        - "macOS (Apple Silicon - M1/M2/M3/M4)"
+        - "macOS (Intel - x86_64)"
+        - "Linux (Ubuntu / Debian - x86_64)"
+        - "Linux (Fedora / Arch / Other - x86_64)"
+        - "Linux (ARM64)"
+        - "Other"
+    validations:
+      required: true
+
+  # Rust and developer environment versions (useful for debugging compile/runtime quirks)
+  - type: input
+    id: environment
+    attributes:
+      label: Toolchain & Environment Info
+      description: Output of `rustc --version` and `node -v` (if building from source).
+      placeholder: "e.g., rustc 1.84.0 (stable-x86_64-pc-windows-msvc), Node v20.18.0"
+    validations:
+      required: false
+
+  # High level summary of the issue
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem Summary
+      description: A concise explanation of the defect or unexpected behavior.
+      placeholder: "Provide a brief description of what happened..."
+    validations:
+      required: true
+
+  # Step by step reproduction instructions
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to Reproduce
+      description: Provide explicit, reproducible steps to trigger the issue from a fresh launch.
+      value: |
+        1. Launch Dybuk.
+        2. Create / open a document (...).
+        3. Perform action (...).
+        4. See error or unexpected behavior.
+    validations:
+      required: true
+
+  # Expected vs actual outcomes
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected vs. Actual Behavior
+      description: What did you expect to happen versus what actually happened?
+      placeholder: "Expected: ...\nActual: ..."
+    validations:
+      required: true
+
+  # Console logs, terminal outputs, or crash backtraces
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs & Backtraces
+      description: Paste any error outputs, terminal traces, or developer tools console logs.
+      placeholder: "Paste logs here..."
+      render: shell
+    validations:
+      required: false
+
+  # Screenshots or video attachments
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots / Recordings
+      description: Drag and drop screenshots or screen recordings demonstrating the problem.
+      placeholder: "Drop images or GIF recordings here..."
+    validations:
+      required: false
+
+  # Pre-submission confirmation
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Pre-Submission Checklist
+      description: Please verify before submitting.
+      options:
+        - label: I have searched existing issues and confirmed this is not a duplicate.
+          required: true
+        - label: I have verified that no sensitive credentials, private passwords, or proprietary text are present in this report.
+          required: true
+

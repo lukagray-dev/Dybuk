@@ -1,11 +1,11 @@
 // Document editor WYSIWYG canvas and topbar controller for Dybuk
 // Manages pulldown-cmark compilation on open, floating toolbar lifecycle, and clean GFM serialization on save
 
-import { appState } from '../shared/state.js';
-import { FloatingToolbar } from './canvas/floating-toolbar.js';
-import { domToMarkdown, markdownToDom } from './canvas/serializer.js';
-import { lockVaultIpc, readDocumentIpc, saveDocumentIpc } from './ipc.js';
-import { showUnlockVaultDialog } from './unlock-dialog.js';
+import { appState } from '../../shared/state.js';
+import { lockVaultIpc, readDocumentIpc, saveDocumentIpc } from '../ipc.js';
+import { showUnlockVaultDialog } from '../unlock-dialog.js';
+import { FloatingToolbar } from './floating-toolbar.js';
+import { domToMarkdown, markdownToDom } from './serializer.js';
 
 let activePassword = '';
 let floatingToolbar: FloatingToolbar | null = null;

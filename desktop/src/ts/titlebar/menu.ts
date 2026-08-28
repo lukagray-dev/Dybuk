@@ -1,4 +1,4 @@
-import { lockActiveDocument, saveActiveDocument } from '../main-content/editor.js';
+import { lockActiveDocument, saveActiveDocument } from '../main-content/canvas/editor.js';
 import { invokeIpc } from '../shared/ipc.js';
 import { appState } from '../shared/state.js';
 

@@ -1,6 +1,6 @@
 // Left Sidebar management, document categorization, search filtering, and creation
 
-import { openDocument } from '../main-content/editor.js';
+import { openDocument } from '../main-content/canvas/editor.js';
 import { appState } from '../shared/state.js';
 import { showCreateDocumentDialog } from './dialog.js';
 import { listDocumentsIpc, removeRecentDocIpc } from './ipc.js';

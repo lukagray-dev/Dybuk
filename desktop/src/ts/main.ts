@@ -1,7 +1,7 @@
 // Main entry point for Dybuk Desktop UI (Strict ES6 / TypeScript)
 
 import { initSidebar } from './left-sidebar/sidebar.js';
-import { initEditor } from './main-content/editor.js';
+import { initEditor } from './main-content/canvas/editor.js';
 import { initTitlebar } from './titlebar/titlebar.js';
 
 export function initApp(): void {

@@ -1,12 +1,21 @@
-// Document editor canvas and topbar controller for Dybuk
+// Document editor WYSIWYG canvas and topbar controller for Dybuk
+// Manages pulldown-cmark compilation on open, floating toolbar lifecycle, and clean GFM serialization on save
 
 import { appState } from '../shared/state.js';
+import { FloatingToolbar } from './canvas/floating-toolbar.js';
+import { domToMarkdown, markdownToDom } from './canvas/serializer.js';
 import { lockVaultIpc, readDocumentIpc, saveDocumentIpc } from './ipc.js';
 import { showUnlockVaultDialog } from './unlock-dialog.js';
 
 let activePassword = '';
+let floatingToolbar: FloatingToolbar | null = null;
 
 export function initEditor(): void {
+  const canvas = document.getElementById('editor-canvas');
+  if (canvas) {
+    floatingToolbar = new FloatingToolbar(canvas);
+  }
+
   setupEditorInputs();
   setupEditorActions();
   setupKeyboardShortcuts();
@@ -14,26 +23,36 @@ export function initEditor(): void {
 }
 
 /**
- * Initializes textarea input listeners and word/character count stats.
+ * Initializes canvas input listeners, dirty tracking, and stats.
  */
 function setupEditorInputs(): void {
-  const textarea = document.getElementById('editor-textarea') as HTMLTextAreaElement | null;
-  if (!textarea) return;
+  const canvas = document.getElementById('editor-canvas');
+  if (!canvas) return;
 
-  textarea.addEventListener('input', () => {
-    // Mark document as dirty (unsaved changes)
+  canvas.addEventListener('input', () => {
+    // Mark active document as dirty (has unsaved modifications)
     const doc = appState.getCurrentDoc();
     if (!doc.isDirty) {
       appState.setCurrentDoc({ isDirty: true });
     }
 
     updateStats();
-    autoResizeTextarea();
+  });
+
+  // Handle paste events to preserve clean semantic structure
+  canvas.addEventListener('paste', () => {
+    setTimeout(() => {
+      updateStats();
+      const doc = appState.getCurrentDoc();
+      if (!doc.isDirty) {
+        appState.setCurrentDoc({ isDirty: true });
+      }
+    }, 10);
   });
 }
 
 /**
- * Sets up the Lock button in the topbar.
+ * Sets up topbar action buttons (e.g. Lock vault).
  */
 function setupEditorActions(): void {
   const btnLock = document.getElementById('topbar-btn-lock');
@@ -44,7 +63,7 @@ function setupEditorActions(): void {
 }
 
 /**
- * Sets up global keyboard shortcuts (Ctrl+S for save, Ctrl+L for lock).
+ * Sets up global editor keyboard shortcuts (Ctrl+S for save, Ctrl+L for lock).
  */
 function setupKeyboardShortcuts(): void {
   window.addEventListener('keydown', async (e) => {
@@ -61,7 +80,7 @@ function setupKeyboardShortcuts(): void {
 }
 
 /**
- * Subscribes to appState changes to update the topbar UI.
+ * Subscribes to appState changes to synchronize the topbar UI elements.
  */
 function setupAppStateSubscriber(): void {
   const titleEl = document.getElementById('topbar-doc-title');
@@ -102,13 +121,15 @@ function setupAppStateSubscriber(): void {
 }
 
 /**
- * Opens a document into the editor. If .dybuk and locked, prompts for password.
+ * Opens a document into the WYSIWYG canvas.
+ * Compiles raw markdown into semantic HTML using the Rust pulldown-cmark backend.
  */
 export async function openDocument(path: string, name: string, isDybuk: boolean): Promise<boolean> {
-  const textarea = document.getElementById('editor-textarea') as HTMLTextAreaElement | null;
+  const canvas = document.getElementById('editor-canvas');
+  if (!canvas) return false;
 
   if (isDybuk) {
-    // Attempt reading or prompt password
+    // Attempt reading with session key or prompt password
     let content = '';
     let password = activePassword;
 
@@ -125,10 +146,8 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
       activePassword = unlockResult.password;
     }
 
-    if (textarea) {
-      textarea.value = content;
-      autoResizeTextarea();
-    }
+    // Compile Markdown to semantic HTML in canvas
+    await markdownToDom(content, canvas);
 
     appState.setCurrentDoc({
       path,
@@ -139,16 +158,13 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
     });
 
     updateStats();
-    textarea?.focus();
+    canvas.focus();
     return true;
   } else {
     // Plain markdown document
     try {
       const payload = await readDocumentIpc(path);
-      if (textarea) {
-        textarea.value = payload.content;
-        autoResizeTextarea();
-      }
+      await markdownToDom(payload.content, canvas);
 
       activePassword = '';
       appState.setCurrentDoc({
@@ -160,7 +176,7 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
       });
 
       updateStats();
-      textarea?.focus();
+      canvas.focus();
       return true;
     } catch (err) {
       console.error('Failed to read markdown document:', err);
@@ -172,15 +188,17 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
 
 /**
  * Saves the current active document to disk.
+ * Serializes the formatted WYSIWYG canvas DOM back into clean GFM Markdown.
  */
 export async function saveActiveDocument(): Promise<void> {
   const doc = appState.getCurrentDoc();
-  const textarea = document.getElementById('editor-textarea') as HTMLTextAreaElement | null;
-  if (!doc.path || !textarea) return;
+  const canvas = document.getElementById('editor-canvas');
+  if (!doc.path || !canvas) return;
 
   try {
-    const content = textarea.value;
-    await saveDocumentIpc(doc.path, content, doc.isDybuk ? activePassword : undefined);
+    // Serialize WYSIWYG DOM back to clean Markdown
+    const markdown = domToMarkdown(canvas);
+    await saveDocumentIpc(doc.path, markdown, doc.isDybuk ? activePassword : undefined);
     appState.setCurrentDoc({ isDirty: false });
   } catch (err) {
     console.error('Failed to save document:', err);
@@ -189,17 +207,17 @@ export async function saveActiveDocument(): Promise<void> {
 }
 
 /**
- * Locks the current active vault, wipes key from session store, and closes document.
+ * Locks the current active vault, clears session key, and resets editor state.
  */
 export async function lockActiveDocument(): Promise<void> {
   const doc = appState.getCurrentDoc();
-  const textarea = document.getElementById('editor-textarea') as HTMLTextAreaElement | null;
+  const canvas = document.getElementById('editor-canvas');
   if (!doc.path || !doc.isDybuk) return;
 
   try {
     await lockVaultIpc(doc.path);
     activePassword = '';
-    if (textarea) textarea.value = '';
+    if (canvas) canvas.innerHTML = '';
 
     appState.setCurrentDoc({
       path: null,
@@ -208,6 +226,8 @@ export async function lockActiveDocument(): Promise<void> {
       isDirty: false,
       isUnlocked: false,
     });
+
+    floatingToolbar?.hideAll();
   } catch (err) {
     console.error('Failed to lock vault:', err);
   }
@@ -217,25 +237,13 @@ export async function lockActiveDocument(): Promise<void> {
  * Calculates and updates word and character statistics in the topbar.
  */
 function updateStats(): void {
-  const textarea = document.getElementById('editor-textarea') as HTMLTextAreaElement | null;
+  const canvas = document.getElementById('editor-canvas');
   const statsPill = document.getElementById('topbar-word-count');
-  if (!textarea || !statsPill) return;
+  if (!canvas || !statsPill) return;
 
-  const text = textarea.value.trim();
-  const charCount = textarea.value.length;
-  const wordCount = text ? text.split(/\s+/).length : 0;
+  const text = (canvas.innerText || canvas.textContent || '').trim();
+  const charCount = text.length;
+  const wordCount = text ? text.split(/\s+/).filter(Boolean).length : 0;
 
   statsPill.textContent = `${wordCount} words  •  ${charCount} chars`;
 }
-
-/**
- * Automatically adjusts textarea height so document expands naturally.
- */
-function autoResizeTextarea(): void {
-  const textarea = document.getElementById('editor-textarea') as HTMLTextAreaElement | null;
-  if (!textarea) return;
-
-  textarea.style.height = 'auto';
-  textarea.style.height = `${Math.max(textarea.scrollHeight, 400)}px`;
-}
-

@@ -1,3 +1,4 @@
+import { lockActiveDocument, saveActiveDocument } from '../main-content/editor.js';
 import { invokeIpc } from '../shared/ipc.js';
 import { appState } from '../shared/state.js';
 
@@ -61,19 +62,19 @@ function setupFilesMenuActions(): void {
     console.debug('[Menu:Files] Open Document requested');
   });
 
-  document.getElementById('menu-item-save')?.addEventListener('click', () => {
+  document.getElementById('menu-item-save')?.addEventListener('click', async () => {
     appState.setActiveMenu(null);
-    console.debug('[Menu:Files] Save Document requested');
+    await saveActiveDocument();
   });
 
-  document.getElementById('menu-item-save-as')?.addEventListener('click', () => {
+  document.getElementById('menu-item-save-as')?.addEventListener('click', async () => {
     appState.setActiveMenu(null);
-    console.debug('[Menu:Files] Save As requested');
+    await saveActiveDocument();
   });
 
-  document.getElementById('menu-item-lock')?.addEventListener('click', () => {
+  document.getElementById('menu-item-lock')?.addEventListener('click', async () => {
     appState.setActiveMenu(null);
-    console.debug('[Menu:Files] Lock Document requested');
+    await lockActiveDocument();
   });
 
   document.getElementById('menu-item-settings')?.addEventListener('click', () => {

@@ -32,15 +32,15 @@
   flex-direction: column;
 }
 
-/* Distraction-Free Textarea Canvas */
-.editor-textarea {
+/* Distraction-Free WYSIWYG Contenteditable Canvas */
+.editor-canvas.markdown-body {
   width: 100%;
   flex: 1;
   min-height: calc(100vh - 160px);
-  background: transparent;
+  background: transparent !important;
+  background-color: transparent !important;
   border: none;
   outline: none;
-  resize: none;
   font-family: var(--editor-font-family, 'Literata', Georgia, serif);
   font-size: 16px;
   line-height: 1.8;
@@ -50,12 +50,124 @@
   margin: 0;
   user-select: text;
   -webkit-user-select: text;
-  overflow: hidden;
+  word-wrap: break-word;
+  position: relative;
 }
 
-.editor-textarea::placeholder {
+/* Placeholder for empty canvas */
+.editor-canvas:empty:before,
+.editor-canvas[data-empty="true"]:before {
+  content: attr(data-placeholder);
   color: rgba(255, 255, 255, 0.2);
   font-style: italic;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+/* Typography refinements in canvas */
+.editor-canvas.markdown-body h1,
+.editor-canvas.markdown-body h2,
+.editor-canvas.markdown-body h3,
+.editor-canvas.markdown-body h4,
+.editor-canvas.markdown-body h5,
+.editor-canvas.markdown-body h6 {
+  font-family: var(--font-family, 'Open Sans', sans-serif);
+  color: var(--text-primary);
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+}
+
+.editor-canvas.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 1.1em;
+}
+
+.editor-canvas.markdown-body code {
+  font-family: var(--mono-font-family, 'Kode Mono', monospace);
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-size: 88%;
+}
+
+.editor-canvas.markdown-body pre {
+  background-color: #121216;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 1.2em 0;
+}
+
+.editor-canvas.markdown-body pre code {
+  background-color: transparent;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.editor-canvas.markdown-body blockquote {
+  border-left: 3px solid #007acc;
+  color: var(--text-secondary);
+  padding: 0 1em;
+  margin: 1.2em 0;
+  background: rgba(0, 122, 204, 0.04);
+  border-radius: 0 6px 6px 0;
+}
+
+.editor-canvas.markdown-body hr {
+  background-color: rgba(255, 255, 255, 0.12);
+  height: 1px;
+  margin: 2em 0;
+  border: none;
+}
+
+.editor-canvas.markdown-body ul,
+.editor-canvas.markdown-body ol {
+  padding-left: 1.8em;
+  margin: 0.8em 0;
+}
+
+.editor-canvas.markdown-body li {
+  margin: 0.3em 0;
+}
+
+.editor-canvas.markdown-body .task-list-item {
+  list-style-type: none;
+  position: relative;
+}
+
+.editor-canvas.markdown-body .task-list-item-checkbox {
+  margin-right: 8px;
+  cursor: pointer;
+  accent-color: #007acc;
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
+}
+
+.editor-canvas.markdown-body table {
+  margin: 1.5em 0;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.editor-canvas.markdown-body th,
+.editor-canvas.markdown-body td {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 8px 12px;
+}
+
+.editor-canvas.markdown-body th {
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+}
+
+.editor-canvas.markdown-body a {
+  color: #58a6ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Empty State / Welcome Screen when no document is loaded */
@@ -108,4 +220,3 @@
   align-items: center;
   gap: 6px;
 }
-

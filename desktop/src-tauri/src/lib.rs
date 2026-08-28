@@ -1,5 +1,6 @@
 //! Core runner for Dybuk Desktop application
 
+pub mod main_content;
 pub mod sidebar;
 pub mod titlebar;
 
@@ -39,6 +40,8 @@ pub fn run() {
             sidebar::commands::check_vault_unlocked,
             sidebar::commands::get_default_documents_dir,
             sidebar::commands::remove_recent_cmd,
+            // Markdown WYSIWYG Actions
+            main_content::markdown::render_markdown,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

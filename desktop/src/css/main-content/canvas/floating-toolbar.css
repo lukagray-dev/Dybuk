@@ -1,0 +1,269 @@
+/* Floating Toolbar & Mini Trigger Bubble Styles for Dybuk WYSIWYG Editor */
+
+/* Mini Floating Action Trigger (•••) */
+.floating-trigger {
+  position: fixed;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  background: rgba(24, 24, 27, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: var(--text-secondary, #d3d3d3);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+.floating-trigger.visible {
+  display: inline-flex;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.floating-trigger:hover {
+  background: rgba(38, 38, 44, 0.98);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--text-primary, #ffffff);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 122, 204, 0.3);
+}
+
+.floating-trigger:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.floating-trigger svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* Expanded Floating Formatting Toolbar */
+.floating-toolbar {
+  position: fixed;
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: rgba(18, 18, 22, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  pointer-events: none;
+}
+
+.floating-toolbar.visible {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Toolbar Tool Groups */
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 4px;
+}
+
+/* Individual Toolbar Action Buttons */
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-secondary, #cccccc);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #ffffff);
+}
+
+.toolbar-btn:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.toolbar-btn.active {
+  background: rgba(0, 122, 204, 0.28);
+  color: #58a6ff;
+  border-color: rgba(0, 122, 204, 0.45);
+}
+
+.toolbar-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Heading Dropdown Trigger */
+.toolbar-btn-dropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  font-weight: 600;
+}
+
+.toolbar-btn-dropdown .dropdown-caret {
+  width: 10px;
+  height: 10px;
+  stroke-width: 2.5;
+}
+
+/* Heading Submenu Dropdown */
+.toolbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1005;
+  display: none;
+  flex-direction: column;
+  min-width: 150px;
+  padding: 4px;
+  background: #1a1a20;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+}
+
+.toolbar-dropdown-menu.open {
+  display: flex;
+}
+
+.tb-heading-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: var(--text-secondary, #cccccc);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.tb-heading-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #ffffff);
+}
+
+.tb-heading-option[data-level="1"] { font-size: 16px; font-weight: 700; }
+.tb-heading-option[data-level="2"] { font-size: 15px; font-weight: 600; }
+.tb-heading-option[data-level="3"] { font-size: 14px; font-weight: 600; }
+.tb-heading-option[data-level="4"] { font-size: 13px; font-weight: 600; }
+.tb-heading-option[data-level="5"] { font-size: 12px; font-weight: 600; }
+.tb-heading-option[data-level="6"] { font-size: 11px; font-weight: 600; }
+
+/* Link Popover */
+.toolbar-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1005;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #1a1a20;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+}
+
+.toolbar-popover.open {
+  display: flex;
+}
+
+.toolbar-popover-input {
+  width: 220px;
+  height: 26px;
+  padding: 0 8px;
+  background: #101014;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: var(--text-primary, #ffffff);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.toolbar-popover-input:focus {
+  border-color: #007acc;
+  box-shadow: 0 0 0 1px #007acc;
+}
+
+.toolbar-popover-btn {
+  height: 26px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: var(--text-secondary, #dddddd);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.toolbar-popover-btn.primary {
+  background: #007acc;
+  color: #ffffff;
+  border-color: #007acc;
+}
+
+.toolbar-popover-btn.primary:hover {
+  background: #008be5;
+}
+
+.toolbar-popover-btn.danger {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.25);
+}
+
+.toolbar-popover-btn.danger:hover {
+  background: rgba(255, 107, 107, 0.15);
+}
+

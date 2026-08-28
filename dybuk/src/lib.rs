@@ -14,6 +14,7 @@
 pub(crate) mod crypto;
 pub mod document;
 pub mod format;
+pub mod markdown;
 pub mod recents;
 pub mod session;
 pub mod storage;
@@ -34,6 +35,9 @@ pub use document::{create_document, CreatedDocument, DocumentError, NewDocument}
 
 // Re-export public vault encryption/decryption functions.
 pub use format::vault::{open, seal};
+
+// Re-export markdown-to-HTML rendering engine.
+pub use markdown::render_to_html;
 
 /// Current version of the `dybuk` crate as defined in Cargo.toml.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

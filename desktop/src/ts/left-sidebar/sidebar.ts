@@ -28,10 +28,13 @@ function setupSidebarCollapse(): void {
   const sidebar = document.getElementById('left-sidebar');
   if (!sidebar) return;
 
-  appState.subscribe(() => {
+  const update = () => {
     const isOpen = appState.getSidebarOpen();
     sidebar.classList.toggle('collapsed', !isOpen);
-  });
+  };
+
+  update();
+  appState.subscribe(update);
 }
 
 /**

@@ -31,6 +31,7 @@ pub fn run() {
             titlebar::menu::open_follow_creator,
             titlebar::menu::open_repository,
             titlebar::menu::exit_application,
+            titlebar::menu::open_file_dialog,
             // Document & Sidebar Actions
             sidebar::commands::list_documents,
             sidebar::commands::create_document_cmd,

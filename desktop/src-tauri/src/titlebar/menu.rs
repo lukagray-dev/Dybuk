@@ -68,3 +68,16 @@ pub async fn exit_application(app: AppHandle) -> Result<(), String> {
     app.exit(0);
     Ok(())
 }
+
+/// Opens a native system file dialog to choose a markdown (.md, .markdown) or encrypted vault (.dybuk) file.
+#[tauri::command]
+pub async fn open_file_dialog() -> Result<Option<String>, String> {
+    let file = rfd::AsyncFileDialog::new()
+        .set_title("Open Document")
+        .add_filter("Dybuk & Markdown Documents", &["md", "markdown", "dybuk"])
+        .add_filter("All Files", &["*"])
+        .pick_file()
+        .await;
+
+    Ok(file.map(|f| f.path().to_string_lossy().to_string()))
+}

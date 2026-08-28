@@ -133,14 +133,35 @@
   width: 28px;
   height: 28px;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
+  color: var(--text-secondary, #cccccc);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
-/* Lock Icon Mask */
-.icon-topbar-lock,
-.icon-lock {
-  -webkit-mask-image: url('../../assets/icons/main-content/lock.svg');
-  mask-image: url('../../assets/icons/main-content/lock.svg');
+.topbar-btn.icon-only:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary, #ffffff);
+}
+
+.topbar-btn.icon-only:active {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.topbar-btn.icon-only svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 

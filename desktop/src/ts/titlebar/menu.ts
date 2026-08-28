@@ -1,4 +1,9 @@
-import { lockActiveDocument, saveActiveDocument } from '../main-content/canvas/editor.js';
+// Native Titlebar Dropdown Menus and Action Dispatcher for Dybuk
+// Manages File, View, Window, Help menus, and state-aware item activation
+
+import { showCreateDocumentDialog } from '../left-sidebar/dialog.js';
+import { refreshDocuments } from '../left-sidebar/sidebar.js';
+import { lockActiveDocument, openDocument, saveActiveDocument } from '../main-content/canvas/editor.js';
 import { invokeIpc } from '../shared/ipc.js';
 import { appState } from '../shared/state.js';
 
@@ -24,9 +29,10 @@ export function setupMenus(): void {
     });
   });
 
-  // Sync active menu state with DOM classes
+  // Sync active menu state & item enablement with DOM classes
   appState.subscribe(() => {
     const active = appState.getActiveMenu();
+    const doc = appState.getCurrentDoc();
 
     menuTriggers.forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.menu === active);
@@ -35,6 +41,18 @@ export function setupMenus(): void {
     dropdownMenus.forEach((menu) => {
       menu.classList.toggle('open', menu.dataset.menu === active);
     });
+
+    // Save is enabled only when an active document has unsaved modifications
+    const saveItem = document.getElementById('menu-item-save');
+    if (saveItem) {
+      saveItem.classList.toggle('disabled', !doc.path || !doc.isDirty);
+    }
+
+    // Lock Vault is enabled only when an encrypted .dybuk vault is currently open and unlocked
+    const lockItem = document.getElementById('menu-item-lock');
+    if (lockItem) {
+      lockItem.classList.toggle('disabled', !doc.path || !doc.isDybuk || !doc.isUnlocked);
+    }
   });
 
   // Dismiss menus on outside click
@@ -51,38 +69,76 @@ export function setupMenus(): void {
   setupHelpMenuActions();
 }
 
+/**
+ * Configures File menu actions (New Document sub-options, Open Document, Save, Lock Vault).
+ */
 function setupFilesMenuActions(): void {
-  document.getElementById('menu-item-new-doc')?.addEventListener('click', () => {
+  // New Standard Markdown Document (.md)
+  document.getElementById('menu-item-new-markdown')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
     appState.setActiveMenu(null);
-    console.debug('[Menu:Files] New Document requested');
+    const created = await showCreateDocumentDialog('md');
+    if (created) {
+      await refreshDocuments();
+      await openDocument(created.path, created.name, created.is_dybuk);
+    }
   });
 
-  document.getElementById('menu-item-open-doc')?.addEventListener('click', () => {
+  // New Encrypted Dybuk Vault (.dybuk)
+  document.getElementById('menu-item-new-dybuk')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
     appState.setActiveMenu(null);
-    console.debug('[Menu:Files] Open Document requested');
+    const created = await showCreateDocumentDialog('dybuk');
+    if (created) {
+      await refreshDocuments();
+      await openDocument(created.path, created.name, created.is_dybuk);
+    }
   });
 
+  // Open Document (via native file picker dialog)
+  document.getElementById('menu-item-open-doc')?.addEventListener('click', async () => {
+    appState.setActiveMenu(null);
+    try {
+      const filePath = await invokeIpc<string | null>('open_file_dialog');
+      if (filePath) {
+        const isDybuk = filePath.toLowerCase().endsWith('.dybuk');
+        const fileName = filePath.split(/[\\/]/).pop() || 'Untitled';
+        const success = await openDocument(filePath, fileName, isDybuk);
+        if (success) {
+          await refreshDocuments();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to open file dialog:', err);
+    }
+  });
+
+  // Save Document
   document.getElementById('menu-item-save')?.addEventListener('click', async () => {
+    const doc = appState.getCurrentDoc();
+    if (!doc.path || !doc.isDirty) return;
     appState.setActiveMenu(null);
     await saveActiveDocument();
   });
 
-  document.getElementById('menu-item-save-as')?.addEventListener('click', async () => {
-    appState.setActiveMenu(null);
-    await saveActiveDocument();
-  });
-
+  // Lock Vault
   document.getElementById('menu-item-lock')?.addEventListener('click', async () => {
+    const doc = appState.getCurrentDoc();
+    if (!doc.path || !doc.isDybuk || !doc.isUnlocked) return;
     appState.setActiveMenu(null);
     await lockActiveDocument();
   });
 
+  // Settings
   document.getElementById('menu-item-settings')?.addEventListener('click', () => {
     appState.setActiveMenu(null);
-    console.debug('[Menu:Files] Settings requested');
+    alert('Settings panel will be implemented in the next phase.');
   });
 }
 
+/**
+ * Configures View menu actions.
+ */
 function setupViewMenuActions(): void {
   document.getElementById('menu-item-toggle-recents')?.addEventListener('click', () => {
     appState.setActiveMenu(null);
@@ -90,6 +146,9 @@ function setupViewMenuActions(): void {
   });
 }
 
+/**
+ * Configures Window menu actions.
+ */
 function setupWindowMenuActions(): void {
   document.getElementById('menu-item-close-window')?.addEventListener('click', async () => {
     appState.setActiveMenu(null);
@@ -102,6 +161,9 @@ function setupWindowMenuActions(): void {
   });
 }
 
+/**
+ * Configures Help menu external links.
+ */
 function setupHelpMenuActions(): void {
   document.getElementById('menu-item-documentation')?.addEventListener('click', async () => {
     appState.setActiveMenu(null);

@@ -128,6 +128,10 @@ export function setupBrandLogoToggle(): void {
     brandToggleIcon.style.maskImage = iconUrl;
   };
 
+  // Set initial icon and subscribe to global state changes (e.g. View menu, Ctrl+B)
+  updateToggleIcon();
+  appState.subscribe(updateToggleIcon);
+
   brandContainer.addEventListener('mouseenter', () => {
     updateToggleIcon();
     brandContainer.classList.add('hovered');
@@ -140,6 +144,5 @@ export function setupBrandLogoToggle(): void {
   brandContainer.addEventListener('click', (e) => {
     e.stopPropagation();
     appState.toggleSidebar();
-    updateToggleIcon();
   });
 }

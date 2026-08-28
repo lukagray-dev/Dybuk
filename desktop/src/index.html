@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="css/left-sidebar/sidebar.css" />
     <link rel="stylesheet" href="css/main-content/topbar/topbar.css" />
     <link rel="stylesheet" href="css/main-content/canvas/github-markdown-dark.css" />
-    <link rel="stylesheet" href="css/main-content/canvas.css" />
+    <link rel="stylesheet" href="css/main-content/canvas/canvas.css" />
     <link rel="stylesheet" href="css/main-content/canvas/floating-toolbar.css" />
     <!-- Scripts -->
     <script type="module" src="js/main.js" defer></script>
@@ -34,24 +34,35 @@
             <div class="menu-container">
               <button class="menu-trigger" data-menu="files">Files</button>
               <div class="dropdown-menu" data-menu="files">
-                <div id="menu-item-new-doc" class="dropdown-item">
-                  <span>New Document</span>
-                  <span class="dropdown-item-shortcut">Ctrl+N</span>
+                <div id="menu-item-new-doc" class="dropdown-item has-submenu">
+                  <div class="dropdown-item-label">
+                    <span>New Document</span>
+                  </div>
+                  <div class="dropdown-item-right">
+                    <span class="dropdown-item-shortcut">Ctrl+N</span>
+                    <svg class="submenu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                  <div class="dropdown-submenu">
+                    <div id="menu-item-new-markdown" class="dropdown-item" data-type="md">
+                      <span class="ui-icon icon-file-md"></span>
+                      <span>Standard Document (.md)</span>
+                    </div>
+                    <div id="menu-item-new-dybuk" class="dropdown-item" data-type="dybuk">
+                      <span class="ui-icon icon-file-dybuk"></span>
+                      <span>Encrypted Vault (.dybuk)</span>
+                    </div>
+                  </div>
                 </div>
                 <div id="menu-item-open-doc" class="dropdown-item">
                   <span>Open Document</span>
                   <span class="dropdown-item-shortcut">Ctrl+O</span>
                 </div>
-                <div id="menu-item-save" class="dropdown-item">
+                <div id="menu-item-save" class="dropdown-item disabled">
                   <span>Save</span>
                   <span class="dropdown-item-shortcut">Ctrl+S</span>
                 </div>
-                <div id="menu-item-save-as" class="dropdown-item">
-                  <span>Save As...</span>
-                  <span class="dropdown-item-shortcut">Ctrl+Shift+S</span>
-                </div>
                 <div class="dropdown-separator"></div>
-                <div id="menu-item-lock" class="dropdown-item">
+                <div id="menu-item-lock" class="dropdown-item disabled">
                   <span>Lock Vault</span>
                   <span class="dropdown-item-shortcut">Ctrl+L</span>
                 </div>
@@ -229,7 +240,7 @@
             <div class="topbar-right-section">
               <span id="topbar-word-count" class="topbar-stats-pill">0 words • 0 chars</span>
               <button id="topbar-btn-lock" class="topbar-btn icon-only" title="Lock vault (Ctrl+L)" style="display: none;">
-                <span class="ui-icon icon-topbar-lock"></span>
+                <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               </button>
             </div>
           </header>

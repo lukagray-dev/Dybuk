@@ -11,7 +11,7 @@ export interface OpenDocumentState {
 }
 
 class AppStateManager {
-  private sidebarOpen = false;
+  private sidebarOpen = true;
   private isMaximized = false;
   private activeMenu: string | null = null;
   private currentDoc: OpenDocumentState = {

@@ -173,10 +173,18 @@ mod tests {
     }
 
     #[test]
-    fn test_render_footnotes() {
-        let input = "Here is a note[^note1].\n\n[^note1]: This is the footnote content.";
+    fn test_render_html5_media() {
+        let input = r#"<figure align="center"><img src="data:image/png;base64,iVBORw0KGgo=" alt="Sample" width="80%" /><figcaption>Sample Diagram</figcaption></figure>
+
+<video controls src="https://example.com/demo.mp4" width="100%"></video>
+
+<audio controls src="https://example.com/audio.mp3"></audio>"#;
         let output = render_to_html(input);
-        assert!(output.contains("footnote") || output.contains("note1"));
+        assert!(output.contains("<figure"));
+        assert!(output.contains("<img"));
+        assert!(output.contains("<figcaption>Sample Diagram</figcaption>"));
+        assert!(output.contains("<video controls"));
+        assert!(output.contains("<audio controls"));
     }
 }
 

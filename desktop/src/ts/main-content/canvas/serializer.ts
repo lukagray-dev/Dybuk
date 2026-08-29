@@ -42,7 +42,51 @@ export async function markdownToDom(markdown: string, container: HTMLElement): P
       container.dispatchEvent(new Event('input', { bubbles: true }));
     });
   });
+
+  // 4. Post-process HTML5 media elements (images, videos, audio) with interactive wrappers
+  postProcessMediaNodes(container);
 }
+
+/**
+ * Normalizes and wraps media elements into interactive `.media-wrapper` figure cards.
+ */
+export function postProcessMediaNodes(container: HTMLElement): void {
+  // Process existing figure elements
+  const figures = container.querySelectorAll<HTMLElement>('figure');
+  figures.forEach((fig) => {
+    fig.classList.add('media-wrapper');
+    fig.setAttribute('contenteditable', 'false');
+    if (!fig.getAttribute('align')) {
+      fig.setAttribute('align', 'center');
+    }
+    const caption = fig.querySelector('figcaption');
+    if (caption) {
+      caption.setAttribute('contenteditable', 'true');
+    }
+  });
+
+  // Wrap standalone img, video, audio tags that are not inside a figure
+  const mediaElements = container.querySelectorAll<HTMLElement>('img, video, audio');
+  mediaElements.forEach((media) => {
+    if (media.closest('figure.media-wrapper')) {
+      return;
+    }
+
+    const figure = document.createElement('figure');
+    figure.className = 'media-wrapper';
+    figure.setAttribute('contenteditable', 'false');
+
+    const align = media.getAttribute('align') || 'center';
+    figure.setAttribute('align', align);
+
+    const parent = media.parentNode;
+    if (parent) {
+      parent.insertBefore(figure, media);
+      figure.appendChild(media);
+    }
+  });
+}
+
 
 /**
  * Finds all LaTeX math elements in the given container and renders them with KaTeX.
@@ -310,10 +354,58 @@ function walkNode(node: Node, indentLevel: number = 0): string {
       return `[${linkText}](${href})`;
     }
 
+    case 'FIGURE': {
+      const align = el.getAttribute('align') || el.style.textAlign || 'center';
+      const img = el.querySelector('img');
+      const video = el.querySelector('video');
+      const audio = el.querySelector('audio');
+      const figcaption = el.querySelector('figcaption');
+      const captionText = figcaption ? serializeChildren(figcaption).trim() : '';
+
+      let mediaHtml = '';
+      if (img) {
+        const src = img.getAttribute('src') || '';
+        const alt = img.getAttribute('alt') || captionText || '';
+        const width = img.style.width || img.getAttribute('width');
+        mediaHtml = `<img src="${src}" alt="${alt}"${width ? ` width="${width}"` : ''} />`;
+      } else if (video) {
+        const src = video.getAttribute('src') || '';
+        const width = video.style.width || video.getAttribute('width');
+        mediaHtml = `<video controls src="${src}"${width ? ` width="${width}"` : ''}></video>`;
+      } else if (audio) {
+        const src = audio.getAttribute('src') || '';
+        const width = audio.style.width || audio.getAttribute('width');
+        mediaHtml = `<audio controls src="${src}"${width ? ` width="${width}"` : ''}></audio>`;
+      }
+
+      if (!mediaHtml) {
+        return serializeChildren(el);
+      }
+
+      const captionHtml = captionText ? `<figcaption>${captionText}</figcaption>` : '';
+      const alignAttr = align ? ` align="${align}"` : '';
+
+      return `<figure${alignAttr}>${mediaHtml}${captionHtml}</figure>\n\n`;
+    }
+
     case 'IMG': {
       const src = el.getAttribute('src') || '';
       const alt = el.getAttribute('alt') || '';
-      return `![${alt}](${src})`;
+      const width = el.style.width || el.getAttribute('width');
+      const align = el.getAttribute('align') || el.style.textAlign;
+      return `<img src="${src}" alt="${alt}"${width ? ` width="${width}"` : ''}${align ? ` align="${align}"` : ''} />\n\n`;
+    }
+
+    case 'VIDEO': {
+      const src = el.getAttribute('src') || '';
+      const width = el.style.width || el.getAttribute('width');
+      return `<video controls src="${src}"${width ? ` width="${width}"` : ''}></video>\n\n`;
+    }
+
+    case 'AUDIO': {
+      const src = el.getAttribute('src') || '';
+      const width = el.style.width || el.getAttribute('width');
+      return `<audio controls src="${src}"${width ? ` width="${width}"` : ''}></audio>\n\n`;
     }
 
     case 'TABLE':

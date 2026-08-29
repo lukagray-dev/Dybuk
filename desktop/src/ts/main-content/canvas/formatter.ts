@@ -790,3 +790,157 @@ export function insertCodeBlock(): void {
 export function insertHorizontalRule(): void {
   document.execCommand('insertHorizontalRule', false);
 }
+
+export interface MediaInsertOptions {
+  src: string;
+  mediaType?: 'image' | 'video' | 'audio' | undefined;
+  alt?: string | undefined;
+  caption?: string | undefined;
+  width?: string | undefined;
+  align?: 'left' | 'center' | 'right' | undefined;
+}
+
+/**
+ * Inserts a structured HTML5 media container (`<figure class="media-wrapper">...<figcaption>...</figcaption></figure>`)
+ * into the WYSIWYG canvas at the active selection or cursor position.
+ *
+ * @param options - Media source URI, type (image/video/audio), caption, width, and alignment.
+ * @param canvas - The contenteditable canvas root element.
+ * @returns The newly created and inserted figure HTMLElement.
+ */
+export function insertMediaNode(options: MediaInsertOptions, canvas: HTMLElement): HTMLElement {
+  const selection = window.getSelection();
+  let range: Range | null = null;
+
+  if (selection && selection.rangeCount > 0) {
+    const r = selection.getRangeAt(0);
+    if (canvas.contains(r.commonAncestorContainer)) {
+      range = r;
+    }
+  }
+
+  // Fallback: If no valid selection inside canvas, append at the end of canvas
+  if (!range) {
+    range = document.createRange();
+    range.selectNodeContents(canvas);
+    range.collapse(false);
+  }
+
+  // Determine media category if not explicitly provided
+  let mediaType = options.mediaType;
+  if (!mediaType) {
+    const cleanSrc = options.src.toLowerCase();
+    if (cleanSrc.startsWith('data:video/') || /\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i.test(cleanSrc)) {
+      mediaType = 'video';
+    } else if (cleanSrc.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i.test(cleanSrc)) {
+      mediaType = 'audio';
+    } else {
+      mediaType = 'image';
+    }
+  }
+
+  // 1. Create outer figure container
+  const figure = document.createElement('figure');
+  figure.className = 'media-wrapper';
+  figure.setAttribute('contenteditable', 'false');
+
+  const align = options.align || 'center';
+  figure.setAttribute('align', align);
+
+  // 2. Create the inner HTML5 media element
+  let mediaEl: HTMLElement;
+  const width = options.width || '100%';
+
+  if (mediaType === 'video') {
+    const video = document.createElement('video');
+    video.src = options.src;
+    video.controls = true;
+    video.style.width = width;
+    mediaEl = video;
+  } else if (mediaType === 'audio') {
+    const audio = document.createElement('audio');
+    audio.src = options.src;
+    audio.controls = true;
+    audio.style.width = width;
+    mediaEl = audio;
+  } else {
+    // Image / GIF / SVG
+    const img = document.createElement('img');
+    img.src = options.src;
+    img.alt = options.alt || options.caption || '';
+    img.style.width = width;
+    mediaEl = img;
+  }
+
+  figure.appendChild(mediaEl);
+
+  // 3. Create optional or placeholder caption
+  if (options.caption !== undefined) {
+    const captionEl = document.createElement('figcaption');
+    captionEl.setAttribute('contenteditable', 'true');
+    captionEl.textContent = options.caption;
+    figure.appendChild(captionEl);
+  }
+
+  // 4. Insert into the DOM
+  range.deleteContents();
+  range.insertNode(figure);
+
+  // 5. Ensure an editable empty paragraph follows the media so the writer can keep typing
+  let nextEl = figure.nextSibling;
+  if (!nextEl || (nextEl.nodeType === Node.ELEMENT_NODE && (nextEl as HTMLElement).tagName.toUpperCase() === 'FIGURE')) {
+    const p = document.createElement('p');
+    p.innerHTML = '<br>';
+    figure.parentNode?.insertBefore(p, figure.nextSibling);
+    nextEl = p;
+  }
+
+  // Move cursor into the following paragraph
+  const newRange = document.createRange();
+  newRange.setStart(nextEl, 0);
+  newRange.collapse(true);
+  selection?.removeAllRanges();
+  selection?.addRange(newRange);
+
+  // Notify canvas of document modification
+  canvas.dispatchEvent(new Event('input', { bubbles: true }));
+
+  return figure;
+}
+
+/**
+ * Updates properties (width, alignment, caption) of an existing media figure element.
+ */
+export function updateMediaNode(
+  figure: HTMLElement,
+  updates: { width?: string; align?: 'left' | 'center' | 'right'; caption?: string }
+): void {
+  if (updates.align) {
+    figure.setAttribute('align', updates.align);
+  }
+
+  const mediaEl = figure.querySelector<HTMLElement>('img, video, audio');
+  if (mediaEl && updates.width) {
+    mediaEl.style.width = updates.width;
+  }
+
+  if (updates.caption !== undefined) {
+    let captionEl = figure.querySelector<HTMLElement>('figcaption');
+    if (!captionEl) {
+      captionEl = document.createElement('figcaption');
+      captionEl.setAttribute('contenteditable', 'true');
+      figure.appendChild(captionEl);
+    }
+    captionEl.textContent = updates.caption;
+  }
+}
+
+/**
+ * Removes a media figure container from the canvas DOM.
+ */
+export function removeMediaNode(figure: HTMLElement): void {
+  const parent = figure.parentNode;
+  if (parent) {
+    parent.removeChild(figure);
+  }
+}

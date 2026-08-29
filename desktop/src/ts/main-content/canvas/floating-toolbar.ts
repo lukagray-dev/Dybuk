@@ -15,6 +15,8 @@ import {
   insertCodeBlock,
   insertDetailsSpoiler,
   insertHorizontalRule,
+  insertMediaNode,
+  removeMediaNode,
   toggleBlockquote,
   toggleBold,
   toggleBulletList,
@@ -26,7 +28,9 @@ import {
   toggleSubscript,
   toggleSuperscript,
   toggleTaskList,
+  updateMediaNode,
 } from './formatter.js';
+import { invokeIpc } from '../../shared/ipc.js';
 
 export class FloatingToolbar {
   private canvas: HTMLElement;
@@ -45,12 +49,28 @@ export class FloatingToolbar {
   private mathDisplayToggleEl: HTMLElement | null = null;
   private colorPopoverEl: HTMLElement | null = null;
   private highlightPopoverEl: HTMLElement | null = null;
+  private mediaPopoverEl: HTMLElement | null = null;
+  private mediaTabLocalBtn: HTMLElement | null = null;
+  private mediaTabUrlBtn: HTMLElement | null = null;
+  private mediaPaneLocalEl: HTMLElement | null = null;
+  private mediaPaneUrlEl: HTMLElement | null = null;
+  private mediaDropzoneEl: HTMLElement | null = null;
+  private mediaBrowseBtn: HTMLElement | null = null;
+  private mediaFileStatusEl: HTMLElement | null = null;
+  private mediaUrlInputEl: HTMLInputElement | null = null;
+  private mediaCaptionInputEl: HTMLInputElement | null = null;
+  private canvasMediaToolbarEl: HTMLElement | null = null;
+  private activeMediaFigure: HTMLElement | null = null;
 
   // State
   private isToolbarExpanded = false;
   private isMathDisplayMode = false;
   private selectedColor: string | null = null;
   private selectedGlow: 'none' | 'soft' | 'neon' = 'none';
+  private selectedMediaTab: 'local' | 'url' = 'local';
+  private selectedMediaSize: string = '100%';
+  private selectedMediaAlign: 'left' | 'center' | 'right' = 'center';
+  private selectedLocalMediaPayload: { data_url: string; is_video: boolean; is_audio: boolean; file_name: string } | null = null;
   private savedRange: Range | null = null;
 
   constructor(canvas: HTMLElement) {
@@ -80,7 +100,20 @@ export class FloatingToolbar {
 
     this.colorPopoverEl = document.getElementById('toolbar-color-popover');
     this.highlightPopoverEl = document.getElementById('toolbar-highlight-popover');
+
+    this.mediaPopoverEl = document.getElementById('toolbar-media-popover');
+    this.mediaTabLocalBtn = document.getElementById('tb-media-tab-local');
+    this.mediaTabUrlBtn = document.getElementById('tb-media-tab-url');
+    this.mediaPaneLocalEl = document.getElementById('tb-media-pane-local');
+    this.mediaPaneUrlEl = document.getElementById('tb-media-pane-url');
+    this.mediaDropzoneEl = document.getElementById('tb-media-dropzone');
+    this.mediaBrowseBtn = document.getElementById('tb-media-browse-btn');
+    this.mediaFileStatusEl = document.getElementById('tb-media-file-status');
+    this.mediaUrlInputEl = document.getElementById('toolbar-media-url-input') as HTMLInputElement | null;
+    this.mediaCaptionInputEl = document.getElementById('toolbar-media-caption-input') as HTMLInputElement | null;
+    this.canvasMediaToolbarEl = document.getElementById('canvas-media-toolbar');
   }
+
 
   /**
    * Wires selection, mouse, and keyboard listeners for toolbar positioning and actions.
@@ -149,9 +182,11 @@ export class FloatingToolbar {
     this.setupAlertSubmenu();
     this.setupAlignSubmenu();
     this.setupLinkPopover();
+    this.setupMediaPopover();
     this.setupMathPopover();
     this.setupColorPopover();
     this.setupHighlightPopover();
+    this.setupCanvasMediaToolbar();
     this.setupCanvasKeyShortcuts();
   }
 
@@ -162,7 +197,12 @@ export class FloatingToolbar {
     const selection = window.getSelection();
 
     // If focus is inside input popover, don't close toolbar
-    if (document.activeElement === this.linkInputEl || document.activeElement === this.mathInputEl) {
+    if (
+      document.activeElement === this.linkInputEl ||
+      document.activeElement === this.mathInputEl ||
+      document.activeElement === this.mediaUrlInputEl ||
+      document.activeElement === this.mediaCaptionInputEl
+    ) {
       return;
     }
 
@@ -171,6 +211,7 @@ export class FloatingToolbar {
       this.hideAll();
       return;
     }
+
 
     const range = selection.getRangeAt(0);
 
@@ -410,6 +451,16 @@ export class FloatingToolbar {
       this.restoreSelection();
       insertCodeBlock();
       this.syncActiveStates();
+    });
+
+    document.getElementById('tb-btn-media')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeAllSubmenus(this.mediaPopoverEl);
+      if (this.mediaPopoverEl?.classList.contains('open')) {
+        this.mediaPopoverEl.classList.remove('open');
+      } else {
+        this.openMediaPopover();
+      }
     });
 
     document.getElementById('tb-btn-details')?.addEventListener('click', () => {
@@ -771,12 +822,325 @@ export class FloatingToolbar {
     });
   }
 
+  /**
+   * Configures Media Insertion Popover (Local File, Web URL, Dragzone, Size, Alignment).
+   */
+  private setupMediaPopover(): void {
+    if (!this.mediaPopoverEl) return;
+
+    // 1. Tab switching: Local File vs Web URL
+    this.mediaTabLocalBtn?.addEventListener('click', () => {
+      this.selectedMediaTab = 'local';
+      this.mediaTabLocalBtn?.classList.add('active');
+      this.mediaTabUrlBtn?.classList.remove('active');
+      if (this.mediaPaneLocalEl) this.mediaPaneLocalEl.style.display = 'flex';
+      if (this.mediaPaneUrlEl) this.mediaPaneUrlEl.style.display = 'none';
+    });
+
+    this.mediaTabUrlBtn?.addEventListener('click', () => {
+      this.selectedMediaTab = 'url';
+      this.mediaTabUrlBtn?.classList.add('active');
+      this.mediaTabLocalBtn?.classList.remove('active');
+      if (this.mediaPaneUrlEl) this.mediaPaneUrlEl.style.display = 'flex';
+      if (this.mediaPaneLocalEl) this.mediaPaneLocalEl.style.display = 'none';
+      setTimeout(() => this.mediaUrlInputEl?.focus(), 50);
+    });
+
+    // 2. Browse Computer button -> Triggers Tauri native file dialog
+    this.mediaBrowseBtn?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        const filePath = await invokeIpc<string | null>('select_media_dialog');
+        if (filePath) {
+          const payload = await invokeIpc<{
+            data_url: string;
+            mime_type: string;
+            file_name: string;
+            size_bytes: number;
+            is_video: boolean;
+            is_audio: boolean;
+          }>('read_media_file_base64', { path: filePath });
+
+          if (payload) {
+            this.selectedLocalMediaPayload = payload;
+            if (this.mediaFileStatusEl) {
+              const sizeMb = (payload.size_bytes / (1024 * 1024)).toFixed(1);
+              this.mediaFileStatusEl.textContent = `Selected: ${payload.file_name} (${sizeMb} MB)`;
+              this.mediaFileStatusEl.style.display = 'block';
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to select/read media file:', err);
+        alert(`Failed to load media file: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    });
+
+    // 3. Dropzone inside popover
+    this.mediaDropzoneEl?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.mediaDropzoneEl?.classList.add('dragover');
+    });
+
+    this.mediaDropzoneEl?.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.mediaDropzoneEl?.classList.remove('dragover');
+    });
+
+    this.mediaDropzoneEl?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.mediaDropzoneEl?.classList.remove('dragover');
+
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        if (file) {
+          this.processDroppedFileInPopover(file);
+        }
+      }
+    });
+
+    // 4. Width size selector pills
+    document.querySelectorAll<HTMLElement>('.media-size-pill').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.media-size-pill').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.selectedMediaSize = btn.dataset.size || '100%';
+      });
+    });
+
+    // 5. Alignment selector pills
+    document.querySelectorAll<HTMLElement>('.media-align-pill').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.media-align-pill').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.selectedMediaAlign = (btn.dataset.align as 'left' | 'center' | 'right') || 'center';
+      });
+    });
+
+    // 6. Insert Media button action
+    document.getElementById('tb-media-apply')?.addEventListener('click', () => {
+      let src = '';
+      let isVideo = false;
+      let isAudio = false;
+
+      if (this.selectedMediaTab === 'local') {
+        if (!this.selectedLocalMediaPayload) {
+          alert('Please choose or drop a media file first.');
+          return;
+        }
+        src = this.selectedLocalMediaPayload.data_url;
+        isVideo = this.selectedLocalMediaPayload.is_video;
+        isAudio = this.selectedLocalMediaPayload.is_audio;
+      } else {
+        src = this.mediaUrlInputEl?.value.trim() || '';
+        if (!src) {
+          alert('Please enter a valid media URL.');
+          return;
+        }
+      }
+
+      const caption = this.mediaCaptionInputEl?.value.trim();
+      this.restoreSelection();
+
+      let mediaType: 'image' | 'video' | 'audio' = 'image';
+      if (isVideo) mediaType = 'video';
+      else if (isAudio) mediaType = 'audio';
+
+      insertMediaNode(
+        {
+          src,
+          mediaType,
+          caption: caption || undefined,
+          alt: caption || undefined,
+          width: this.selectedMediaSize,
+          align: this.selectedMediaAlign,
+        },
+        this.canvas
+      );
+
+      this.mediaPopoverEl?.classList.remove('open');
+      this.hideAll();
+    });
+
+    // 7. Cancel button action
+    document.getElementById('tb-media-cancel')?.addEventListener('click', () => {
+      this.mediaPopoverEl?.classList.remove('open');
+    });
+  }
+
+  private processDroppedFileInPopover(file: File): void {
+    const maxBytes = 50 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      alert(`File "${file.name}" exceeds the 50 MB safety threshold.`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const isVideo = file.type.startsWith('video/');
+      const isAudio = file.type.startsWith('audio/');
+
+      this.selectedLocalMediaPayload = {
+        data_url: dataUrl,
+        file_name: file.name,
+        is_video: isVideo,
+        is_audio: isAudio,
+      };
+
+      if (this.mediaFileStatusEl) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        this.mediaFileStatusEl.textContent = `Selected: ${file.name} (${sizeMb} MB)`;
+        this.mediaFileStatusEl.style.display = 'block';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private openMediaPopover(): void {
+    if (!this.mediaPopoverEl) return;
+    this.closeAllSubmenus(this.mediaPopoverEl);
+    this.mediaPopoverEl.classList.add('open');
+
+    // Reset fields
+    this.selectedLocalMediaPayload = null;
+    if (this.mediaFileStatusEl) {
+      this.mediaFileStatusEl.style.display = 'none';
+      this.mediaFileStatusEl.textContent = '';
+    }
+    if (this.mediaUrlInputEl) this.mediaUrlInputEl.value = '';
+    if (this.mediaCaptionInputEl) this.mediaCaptionInputEl.value = '';
+  }
+
+  /**
+   * Configures in-canvas contextual media bubble toolbar (Resizing, Alignment, Delete).
+   */
+  private setupCanvasMediaToolbar(): void {
+    if (!this.canvasMediaToolbarEl) return;
+
+    // Prevent mousedown on media toolbar from collapsing canvas selection
+    this.canvasMediaToolbarEl.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+    });
+
+    // Size and Align button actions
+    this.canvasMediaToolbarEl.querySelectorAll<HTMLElement>('.media-tb-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!this.activeMediaFigure) return;
+
+        const action = btn.dataset.action;
+        const val = btn.dataset.value;
+
+        if (action === 'size' && val) {
+          updateMediaNode(this.activeMediaFigure, { width: val });
+          this.syncCanvasMediaToolbarActiveStates(this.activeMediaFigure);
+          this.canvas.dispatchEvent(new Event('input', { bubbles: true }));
+        } else if (action === 'align' && (val === 'left' || val === 'center' || val === 'right')) {
+          updateMediaNode(this.activeMediaFigure, { align: val });
+          this.syncCanvasMediaToolbarActiveStates(this.activeMediaFigure);
+          this.canvas.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    });
+
+    // Delete button
+    document.getElementById('media-tb-delete')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.activeMediaFigure) {
+        removeMediaNode(this.activeMediaFigure);
+        this.hideCanvasMediaToolbar();
+        this.canvas.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+
+    // Reposition on scroll / resize
+    const scrollPane = document.getElementById('editor-scroll-pane');
+    scrollPane?.addEventListener('scroll', () => {
+      if (this.activeMediaFigure) {
+        this.updateCanvasMediaToolbarPosition(this.activeMediaFigure);
+      }
+    });
+  }
+
+  /**
+   * Shows the in-canvas floating media toolbar above a selected media figure.
+   */
+  public showCanvasMediaToolbar(figure: HTMLElement): void {
+    this.activeMediaFigure = figure;
+
+    // Remove selection outline from other media
+    this.canvas.querySelectorAll('.media-wrapper').forEach((f) => f.classList.remove('selected'));
+    figure.classList.add('selected');
+
+    if (this.canvasMediaToolbarEl) {
+      this.canvasMediaToolbarEl.classList.add('visible');
+      this.updateCanvasMediaToolbarPosition(figure);
+      this.syncCanvasMediaToolbarActiveStates(figure);
+    }
+  }
+
+  /**
+   * Hides the in-canvas floating media toolbar.
+   */
+  public hideCanvasMediaToolbar(): void {
+    if (this.activeMediaFigure) {
+      this.activeMediaFigure.classList.remove('selected');
+      this.activeMediaFigure = null;
+    }
+    this.canvasMediaToolbarEl?.classList.remove('visible');
+  }
+
+  private updateCanvasMediaToolbarPosition(figure: HTMLElement): void {
+    if (!this.canvasMediaToolbarEl) return;
+
+    const rect = figure.getBoundingClientRect();
+    const tbRect = this.canvasMediaToolbarEl.getBoundingClientRect();
+    const tbWidth = tbRect.width || 280;
+    const tbHeight = tbRect.height || 36;
+
+    let left = rect.left + rect.width / 2 - tbWidth / 2;
+    let top = rect.top - tbHeight - 8;
+
+    left = Math.max(10, Math.min(window.innerWidth - tbWidth - 10, left));
+    if (top < 45) {
+      top = rect.bottom + 8;
+    }
+
+    this.canvasMediaToolbarEl.style.left = `${left}px`;
+    this.canvasMediaToolbarEl.style.top = `${top}px`;
+  }
+
+  private syncCanvasMediaToolbarActiveStates(figure: HTMLElement): void {
+    if (!this.canvasMediaToolbarEl) return;
+
+    const mediaEl = figure.querySelector<HTMLElement>('img, video, audio');
+    const currentWidth = mediaEl?.style.width || '100%';
+    const currentAlign = figure.getAttribute('align') || 'center';
+
+    this.canvasMediaToolbarEl.querySelectorAll<HTMLElement>('.media-tb-btn').forEach((btn) => {
+      const action = btn.dataset.action;
+      const val = btn.dataset.value;
+
+      if (action === 'size') {
+        btn.classList.toggle('active', val === currentWidth);
+      } else if (action === 'align') {
+        btn.classList.toggle('active', val === currentAlign);
+      }
+    });
+  }
+
   private closeAllSubmenus(except?: HTMLElement | null): void {
     const menus = [
       this.headingMenuEl,
       this.alertMenuEl,
       this.alignMenuEl,
       this.linkPopoverEl,
+      this.mediaPopoverEl,
       this.mathPopoverEl,
       this.colorPopoverEl,
       this.highlightPopoverEl,
@@ -848,5 +1212,7 @@ export class FloatingToolbar {
     this.triggerEl?.classList.remove('visible');
     this.toolbarEl?.classList.remove('visible');
     this.closeAllSubmenus();
+    this.hideCanvasMediaToolbar();
   }
 }
+

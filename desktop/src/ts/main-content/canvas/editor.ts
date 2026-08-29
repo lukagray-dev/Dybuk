@@ -7,6 +7,7 @@ import { appState } from '../../shared/state.js';
 import { lockVaultIpc, readDocumentIpc, saveDocumentIpc } from '../ipc.js';
 import { showUnlockVaultDialog } from '../unlock-dialog.js';
 import { FloatingToolbar } from './floating-toolbar.js';
+import { insertMediaNode } from './formatter.js';
 import { domToMarkdown, markdownToDom } from './serializer.js';
 
 interface ExternalChangePayload {
@@ -29,6 +30,8 @@ export function initEditor(): void {
   setupKeyboardShortcuts();
   setupAppStateSubscriber();
   setupDiskWatcherSubscriber();
+  setupMediaDragDropAndPaste();
+  setupCanvasMediaInteraction();
 }
 
 /**
@@ -47,9 +50,33 @@ function setupEditorInputs(): void {
 
     updateStats();
   });
+}
 
-  // Handle paste events to preserve clean semantic structure
-  canvas.addEventListener('paste', () => {
+/**
+ * Configures clipboard paste (Ctrl+V) and direct drag & drop for media files.
+ */
+function setupMediaDragDropAndPaste(): void {
+  const canvas = document.getElementById('editor-canvas');
+  if (!canvas) return;
+
+  // 1. Clipboard Paste (Ctrl+V) for screenshots, copied images, and media files
+  canvas.addEventListener('paste', (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item && (item.type.startsWith('image/') || item.type.startsWith('video/') || item.type.startsWith('audio/'))) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          processMediaFileInsertion(file, canvas);
+        }
+        return;
+      }
+    }
+
+    // For standard text paste, update stats
     setTimeout(() => {
       updateStats();
       const doc = appState.getCurrentDoc();
@@ -58,7 +85,114 @@ function setupEditorInputs(): void {
       }
     }, 10);
   });
+
+  // 2. Drag & Drop directly onto the editor canvas
+  canvas.addEventListener('dragover', (e: DragEvent) => {
+    e.preventDefault();
+  });
+
+  canvas.addEventListener('drop', (e: DragEvent) => {
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    let hasMedia = false;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (
+        file &&
+        (file.type.startsWith('image/') ||
+          file.type.startsWith('video/') ||
+          file.type.startsWith('audio/') ||
+          /\.(png|jpg|jpeg|gif|webp|svg|bmp|ico|avif|mp4|webm|mov|mkv|mp3|wav|ogg|m4a|flac)$/i.test(file.name))
+      ) {
+        hasMedia = true;
+        break;
+      }
+    }
+
+    if (!hasMedia) return;
+
+    e.preventDefault();
+
+    // Position insertion caret at drop coordinates
+    if (document.caretRangeFromPoint) {
+      const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      if (range) {
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+    }
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file) {
+        processMediaFileInsertion(file, canvas);
+      }
+    }
+  });
 }
+
+/**
+ * Reads and validates a dropped or pasted media file (enforcing the 50 MB threshold)
+ * and inserts it into the canvas as a Base64 data node.
+ */
+function processMediaFileInsertion(file: File, canvas: HTMLElement): void {
+  const maxBytes = 50 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    alert(`Media file "${file.name}" exceeds the 50 MB safety threshold.`);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result as string;
+    let mediaType: 'image' | 'video' | 'audio' = 'image';
+    if (file.type.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(file.name)) {
+      mediaType = 'video';
+    } else if (file.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(file.name)) {
+      mediaType = 'audio';
+    }
+
+    insertMediaNode(
+      {
+        src: dataUrl,
+        mediaType,
+        alt: file.name,
+        width: '100%',
+        align: 'center',
+      },
+      canvas
+    );
+
+    const doc = appState.getCurrentDoc();
+    if (!doc.isDirty) {
+      appState.setCurrentDoc({ isDirty: true });
+    }
+    updateStats();
+  };
+  reader.readAsDataURL(file);
+}
+
+/**
+ * Sets up in-canvas clicking on media figures to display the contextual media floating toolbar.
+ */
+function setupCanvasMediaInteraction(): void {
+  const canvas = document.getElementById('editor-canvas');
+  if (!canvas) return;
+
+  canvas.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const figure = target.closest('.media-wrapper') as HTMLElement | null;
+
+    if (figure && canvas.contains(figure)) {
+      floatingToolbar?.showCanvasMediaToolbar(figure);
+    } else if (!target.closest('#canvas-media-toolbar')) {
+      floatingToolbar?.hideCanvasMediaToolbar();
+    }
+  });
+}
+
 
 /**
  * Sets up topbar action buttons (e.g. Lock vault).

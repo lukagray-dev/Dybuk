@@ -50,6 +50,9 @@ pub fn run() {
             watcher::commands::unwatch_active_document,
             // Markdown WYSIWYG Actions
             main_content::markdown::render_markdown,
+            // Media Actions
+            main_content::media::select_media_dialog,
+            main_content::media::read_media_file_base64,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

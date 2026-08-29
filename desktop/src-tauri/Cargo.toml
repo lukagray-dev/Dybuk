@@ -21,3 +21,4 @@ serde.workspace = true
 serde_json.workspace = true
 rfd = "0.15"
 notify = "6.1"
+base64 = "0.22"

@@ -982,3 +982,76 @@ export function removeMediaNode(el: HTMLElement): void {
   }
 }
 
+/**
+ * Inserts a compiled Mermaid diagram card element into the canvas at the cursor position.
+ *
+ * @param code - Raw Mermaid DSL code.
+ * @param svg - Compiled vector SVG markup.
+ * @param canvas - Editor canvas DOM element.
+ * @returns The inserted card HTMLElement.
+ */
+export function insertDiagramNode(code: string, svg: string, canvas: HTMLElement): HTMLElement {
+  const card = document.createElement('div');
+  card.className = 'mermaid-diagram-card';
+  card.setAttribute('data-mermaid-code', code);
+  card.setAttribute('contenteditable', 'false');
+
+  const container = document.createElement('div');
+  container.className = 'mermaid-svg-container';
+  container.innerHTML = svg;
+  card.appendChild(container);
+
+  const selection = window.getSelection();
+  if (selection && selection.rangeCount > 0 && canvas.contains(selection.anchorNode)) {
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(card);
+  } else {
+    canvas.appendChild(card);
+  }
+
+  // Insert a trailing editable paragraph so the user can continue typing immediately
+  const nextP = document.createElement('p');
+  nextP.innerHTML = '<br>';
+  if (card.nextSibling) {
+    card.parentNode?.insertBefore(nextP, card.nextSibling);
+  } else {
+    card.parentNode?.appendChild(nextP);
+  }
+
+  // Position cursor inside next paragraph
+  const newRange = document.createRange();
+  newRange.setStart(nextP, 0);
+  newRange.collapse(true);
+  selection?.removeAllRanges();
+  selection?.addRange(newRange);
+
+  canvas.dispatchEvent(new Event('input', { bubbles: true }));
+  return card;
+}
+
+/**
+ * Updates the Mermaid diagram code and SVG of an existing card.
+ */
+export function updateDiagramNode(card: HTMLElement, newCode: string, newSvg: string): void {
+  card.setAttribute('data-mermaid-code', newCode);
+  card.classList.remove('error');
+  let container = card.querySelector<HTMLElement>('.mermaid-svg-container');
+  if (!container) {
+    card.innerHTML = '';
+    container = document.createElement('div');
+    container.className = 'mermaid-svg-container';
+    card.appendChild(container);
+  }
+  container.innerHTML = newSvg;
+  card.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/**
+ * Removes a diagram card from the canvas.
+ */
+export function removeDiagramNode(card: HTMLElement): void {
+  card.parentNode?.removeChild(card);
+}
+
+

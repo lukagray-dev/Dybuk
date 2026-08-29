@@ -14,8 +14,10 @@ import {
   getCurrentMathNode,
   insertCodeBlock,
   insertDetailsSpoiler,
+  insertDiagramNode,
   insertHorizontalRule,
   insertMediaNode,
+  removeDiagramNode,
   removeMediaNode,
   toggleBlockquote,
   toggleBold,
@@ -28,9 +30,93 @@ import {
   toggleSubscript,
   toggleSuperscript,
   toggleTaskList,
+  updateDiagramNode,
   updateMediaNode,
 } from './formatter.js';
 import { invokeIpc } from '../../shared/ipc.js';
+
+export const DIAGRAM_TEMPLATES: Record<string, string> = {
+  flowchart: `flowchart TD
+  A[Start Process] --> B{Is Valid?}
+  B -->|Yes| C[Process Request]
+  B -->|No| D[Log Warning]
+  C --> E[Complete]
+  D --> E`,
+
+  sequence: `sequenceDiagram
+  autonumber
+  actor User
+  participant Client as Web App
+  participant API as Backend Server
+  participant DB as Database
+
+  User->>Client: Click Action
+  Client->>API: Send Request Payload
+  API->>DB: Query Records
+  DB-->>API: Return Result
+  API-->>Client: 200 OK Response
+  Client-->>User: Render Dashboard`,
+
+  architecture: `flowchart LR
+  subgraph Frontend
+    A[Desktop App]
+    B[Web Browser]
+  end
+
+  subgraph Gateway[API Gateway]
+    C[Reverse Proxy / Auth]
+  end
+
+  subgraph Microservices
+    D[Document Service]
+    E[Vault Crypto Service]
+    F[Sync Engine]
+  end
+
+  A --> C
+  B --> C
+  C --> D
+  C --> E
+  C --> F`,
+
+  mindmap: `mindmap
+  root((Dybuk Architecture))
+    (Security)
+      AES-256-GCM
+      Argon2id KDF
+      Zero-Knowledge
+    (Editor)
+      WYSIWYG Canvas
+      Pulldown-Cmark
+      Mermaid Diagrams
+      KaTeX Math
+    (Platform)
+      Tauri v2
+      Rust Core
+      TypeScript`,
+
+  state: `stateDiagram-v2
+  [*] --> Locked
+  Locked --> Decrypting: Enter Passphrase
+  Decrypting --> Unlocked: Passphrase Valid
+  Decrypting --> Locked: Passphrase Invalid
+  Unlocked --> Modified: Edit Document
+  Modified --> Unlocked: Save Active Document
+  Unlocked --> Locked: Lock Vault
+  Locked --> [*]`,
+
+  timeline: `timeline
+  title Dybuk Project Roadmap
+  section Phase 1
+    Core Storage : Load & Save Engine
+    Zero Knowledge Vault : Argon2id & AES-256-GCM
+  section Phase 2
+    WYSIWYG Editor : Contextual Toolbar
+    Rich Media : HTML5 Images & Video
+  section Phase 3
+    Diagram Engine : Pure-Rust Mermaid SVG
+    Cloud Vault Sync : End-to-End Encrypted`
+};
 
 export class FloatingToolbar {
   private canvas: HTMLElement;
@@ -63,6 +149,16 @@ export class FloatingToolbar {
   private canvasMediaToolbarEl: HTMLElement | null = null;
   private canvasMediaSizeInputEl: HTMLInputElement | null = null;
   private activeMediaFigure: HTMLElement | null = null;
+
+  // Diagram Elements
+  private diagramPopoverEl: HTMLElement | null = null;
+  private canvasDiagramToolbarEl: HTMLElement | null = null;
+  private activeDiagramCard: HTMLElement | null = null;
+  private diagramEditModalEl: HTMLElement | null = null;
+  private diagramModalTextareaEl: HTMLTextAreaElement | null = null;
+  private diagramModalPreviewEl: HTMLElement | null = null;
+  private diagramModalErrorEl: HTMLElement | null = null;
+  private diagramModalDebounceTimer: number | null = null;
 
   // State
   private isToolbarExpanded = false;
@@ -116,7 +212,16 @@ export class FloatingToolbar {
     this.mediaCustomWidthInputEl = document.getElementById('toolbar-media-custom-width') as HTMLInputElement | null;
     this.canvasMediaToolbarEl = document.getElementById('canvas-media-toolbar');
     this.canvasMediaSizeInputEl = document.getElementById('media-tb-size-input') as HTMLInputElement | null;
+
+    // Diagram Elements
+    this.diagramPopoverEl = document.getElementById('toolbar-diagram-popover');
+    this.canvasDiagramToolbarEl = document.getElementById('canvas-diagram-toolbar');
+    this.diagramEditModalEl = document.getElementById('diagram-edit-modal');
+    this.diagramModalTextareaEl = document.getElementById('diagram-modal-textarea') as HTMLTextAreaElement | null;
+    this.diagramModalPreviewEl = document.getElementById('diagram-modal-svg-preview');
+    this.diagramModalErrorEl = document.getElementById('diagram-modal-error');
   }
+
 
 
 
@@ -192,8 +297,12 @@ export class FloatingToolbar {
     this.setupColorPopover();
     this.setupHighlightPopover();
     this.setupCanvasMediaToolbar();
+    this.setupDiagramPopover();
+    this.setupCanvasDiagramToolbarListeners();
+    this.setupDiagramModalListeners();
     this.setupCanvasKeyShortcuts();
   }
+
 
   /**
    * Evaluates selection state and shows/hides mini trigger or full toolbar.
@@ -1203,6 +1312,279 @@ export class FloatingToolbar {
 
 
 
+  /**
+   * Configures Diagram popover template selections and toolbar button.
+   */
+  private setupDiagramPopover(): void {
+    const btnDiagram = document.getElementById('tb-btn-diagram');
+    btnDiagram?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeAllSubmenus(this.diagramPopoverEl);
+      if (this.diagramPopoverEl?.classList.contains('open')) {
+        this.diagramPopoverEl.classList.remove('open');
+      } else {
+        this.diagramPopoverEl?.classList.add('open');
+      }
+    });
+
+    this.diagramPopoverEl?.querySelectorAll<HTMLElement>('.diagram-template-card').forEach((card) => {
+      card.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const templateKey = card.dataset.template || 'flowchart';
+        const code: string = DIAGRAM_TEMPLATES[templateKey] ?? DIAGRAM_TEMPLATES['flowchart'] ?? 'flowchart LR\n  A --> B';
+        this.closeAllSubmenus();
+        this.isToolbarExpanded = false;
+        this.toolbarEl?.classList.remove('visible');
+
+        try {
+          const svg = await invokeIpc<string>('render_mermaid_svg', { code });
+          if (svg) {
+            const inserted = insertDiagramNode(code, svg, this.canvas);
+            this.showCanvasDiagramToolbar(inserted);
+          }
+        } catch (err) {
+
+          console.error('Failed to compile diagram template:', err);
+          alert(`Failed to render diagram: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      });
+    });
+  }
+
+  /**
+   * Configures in-canvas floating toolbar for selected diagrams.
+   */
+  private setupCanvasDiagramToolbarListeners(): void {
+    if (!this.canvasDiagramToolbarEl) return;
+
+    // Alignment buttons
+    this.canvasDiagramToolbarEl.querySelectorAll<HTMLElement>('.media-tb-btn[data-action="align"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!this.activeDiagramCard) return;
+
+        const val = btn.dataset.value as 'left' | 'center' | 'right' | undefined;
+        if (val) {
+          this.activeDiagramCard.setAttribute('align', val);
+          this.syncCanvasDiagramToolbarActiveStates(this.activeDiagramCard);
+          this.canvas.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    });
+
+    // Edit button
+    document.getElementById('diagram-tb-btn-edit')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.activeDiagramCard) {
+        this.openDiagramEditModal(this.activeDiagramCard);
+      }
+    });
+
+    // Copy SVG button
+    document.getElementById('diagram-tb-btn-copy')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!this.activeDiagramCard) return;
+      const svgEl = this.activeDiagramCard.querySelector('.mermaid-svg-container');
+      const svgText = svgEl?.innerHTML || '';
+      if (svgText) {
+        try {
+          await navigator.clipboard.writeText(svgText);
+          const btn = document.getElementById('diagram-tb-btn-copy');
+          if (btn) {
+            const original = btn.innerHTML;
+            btn.innerHTML = '<span>Copied!</span>';
+            setTimeout(() => { btn.innerHTML = original; }, 1400);
+          }
+        } catch (copyErr) {
+          console.warn('Clipboard write failed:', copyErr);
+        }
+      }
+    });
+
+    // Delete button
+    document.getElementById('diagram-tb-btn-delete')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.activeDiagramCard) {
+        removeDiagramNode(this.activeDiagramCard);
+        this.hideCanvasDiagramToolbar();
+      }
+    });
+  }
+
+  /**
+   * Configures the live edit modal dialog for diagrams.
+   */
+  private setupDiagramModalListeners(): void {
+    if (!this.diagramEditModalEl) return;
+
+    // Close buttons
+    document.getElementById('diagram-modal-close')?.addEventListener('click', () => {
+      this.closeDiagramEditModal();
+    });
+    document.getElementById('diagram-modal-btn-cancel')?.addEventListener('click', () => {
+      this.closeDiagramEditModal();
+    });
+
+    // Overlay click dismiss
+    this.diagramEditModalEl.querySelector('.diagram-modal-overlay')?.addEventListener('click', () => {
+      this.closeDiagramEditModal();
+    });
+
+    // Quick snippets bar
+    this.diagramEditModalEl.querySelectorAll<HTMLElement>('.diagram-snippet-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const snippet = btn.dataset.snippet?.replace(/\\n/g, '\n') || '';
+        if (this.diagramModalTextareaEl) {
+          const textarea = this.diagramModalTextareaEl;
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const current = textarea.value;
+          textarea.value = current.substring(0, start) + '\n' + snippet + '\n' + current.substring(end);
+          textarea.selectionStart = textarea.selectionEnd = start + snippet.length + 2;
+          textarea.focus();
+          this.triggerDiagramModalLivePreview();
+        }
+      });
+    });
+
+    // Real-time debounced live preview on textarea input
+    this.diagramModalTextareaEl?.addEventListener('input', () => {
+      this.triggerDiagramModalLivePreview();
+    });
+
+    // Save and update button
+    document.getElementById('diagram-modal-btn-save')?.addEventListener('click', async () => {
+      if (!this.activeDiagramCard || !this.diagramModalTextareaEl) return;
+
+      const code = this.diagramModalTextareaEl.value.trim();
+      if (!code) {
+        alert('Diagram code cannot be empty.');
+        return;
+      }
+
+      try {
+        const svg = await invokeIpc<string>('render_mermaid_svg', { code });
+        if (svg) {
+          updateDiagramNode(this.activeDiagramCard, code, svg);
+          this.closeDiagramEditModal();
+          this.showCanvasDiagramToolbar(this.activeDiagramCard);
+        }
+      } catch (err) {
+        console.error('Failed to compile diagram on save:', err);
+        alert(`Failed to compile diagram: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    });
+  }
+
+  private triggerDiagramModalLivePreview(): void {
+    if (this.diagramModalDebounceTimer) {
+      clearTimeout(this.diagramModalDebounceTimer);
+    }
+    this.diagramModalDebounceTimer = window.setTimeout(() => {
+      const code = this.diagramModalTextareaEl?.value || '';
+      this.updateDiagramModalLivePreview(code);
+    }, 250);
+  }
+
+  private async updateDiagramModalLivePreview(code: string): Promise<void> {
+    const cleanCode = code.trim();
+    if (!cleanCode) {
+      if (this.diagramModalPreviewEl) this.diagramModalPreviewEl.innerHTML = '';
+      if (this.diagramModalErrorEl) this.diagramModalErrorEl.style.display = 'none';
+      return;
+    }
+
+    try {
+      const svg = await invokeIpc<string>('render_mermaid_svg', { code: cleanCode });
+      if (this.diagramModalPreviewEl) {
+        this.diagramModalPreviewEl.innerHTML = svg || '';
+      }
+      if (this.diagramModalErrorEl) {
+        this.diagramModalErrorEl.style.display = 'none';
+      }
+    } catch (err) {
+      if (this.diagramModalErrorEl) {
+        this.diagramModalErrorEl.textContent = String(err);
+        this.diagramModalErrorEl.style.display = 'block';
+      }
+    }
+  }
+
+
+  public openDiagramEditModal(card: HTMLElement): void {
+    this.activeDiagramCard = card;
+    const code = card.getAttribute('data-mermaid-code') || '';
+
+    if (this.diagramModalTextareaEl) {
+      this.diagramModalTextareaEl.value = code;
+    }
+    if (this.diagramEditModalEl) {
+      this.diagramEditModalEl.style.display = 'flex';
+    }
+
+    this.updateDiagramModalLivePreview(code);
+    setTimeout(() => this.diagramModalTextareaEl?.focus(), 50);
+  }
+
+  public closeDiagramEditModal(): void {
+    if (this.diagramEditModalEl) {
+      this.diagramEditModalEl.style.display = 'none';
+    }
+  }
+
+  public showCanvasDiagramToolbar(card: HTMLElement): void {
+    this.activeDiagramCard = card;
+    this.canvas.querySelectorAll('.selected').forEach((f) => f.classList.remove('selected'));
+    card.classList.add('selected');
+
+    if (this.canvasDiagramToolbarEl) {
+      this.canvasDiagramToolbarEl.classList.add('visible');
+      this.updateCanvasDiagramToolbarPosition(card);
+      this.syncCanvasDiagramToolbarActiveStates(card);
+    }
+  }
+
+  public hideCanvasDiagramToolbar(): void {
+    if (this.activeDiagramCard) {
+      this.activeDiagramCard.classList.remove('selected');
+      this.activeDiagramCard = null;
+    }
+    this.canvasDiagramToolbarEl?.classList.remove('visible');
+  }
+
+  private updateCanvasDiagramToolbarPosition(card: HTMLElement): void {
+    if (!this.canvasDiagramToolbarEl) return;
+
+    const rect = card.getBoundingClientRect();
+    const tbRect = this.canvasDiagramToolbarEl.getBoundingClientRect();
+    const tbWidth = tbRect.width || 220;
+    const tbHeight = tbRect.height || 34;
+
+    let left = rect.left + rect.width / 2 - tbWidth / 2;
+    let top = rect.top - tbHeight - 8;
+
+    left = Math.max(10, Math.min(window.innerWidth - tbWidth - 10, left));
+    if (top < 45) {
+      top = rect.bottom + 8;
+    }
+
+    this.canvasDiagramToolbarEl.style.left = `${left}px`;
+    this.canvasDiagramToolbarEl.style.top = `${top}px`;
+  }
+
+  private syncCanvasDiagramToolbarActiveStates(card: HTMLElement): void {
+    if (!this.canvasDiagramToolbarEl) return;
+
+    const currentAlign = card.getAttribute('align') || 'center';
+    this.canvasDiagramToolbarEl.querySelectorAll<HTMLElement>('.media-tb-btn[data-action="align"]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.value === currentAlign);
+    });
+  }
+
   private closeAllSubmenus(except?: HTMLElement | null): void {
     const menus = [
       this.headingMenuEl,
@@ -1210,6 +1592,7 @@ export class FloatingToolbar {
       this.alignMenuEl,
       this.linkPopoverEl,
       this.mediaPopoverEl,
+      this.diagramPopoverEl,
       this.mathPopoverEl,
       this.colorPopoverEl,
       this.highlightPopoverEl,
@@ -1282,6 +1665,9 @@ export class FloatingToolbar {
     this.toolbarEl?.classList.remove('visible');
     this.closeAllSubmenus();
     this.hideCanvasMediaToolbar();
+    this.hideCanvasDiagramToolbar();
+    this.closeDiagramEditModal();
   }
 }
+
 

@@ -12,6 +12,7 @@
 //! - [`document`]: Unified document creation entry point for `.md` and `.dybuk` formats.
 
 pub(crate) mod crypto;
+pub mod diagram;
 pub mod document;
 pub mod format;
 pub mod markdown;

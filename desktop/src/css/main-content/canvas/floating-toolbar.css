@@ -995,3 +995,433 @@
   color: #ff6b6b;
 }
 
+/* ── Mermaid Diagram WYSIWYG Container Styles ─────────────────────── */
+.editor-canvas.markdown-body .mermaid-diagram-card {
+  margin: 18px auto;
+  padding: 16px 20px;
+  background: rgba(18, 20, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  display: block;
+  max-width: 100%;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, outline 0.12s ease;
+  position: relative;
+  text-align: center;
+}
+
+.editor-canvas.markdown-body .mermaid-diagram-card:hover {
+  border-color: rgba(88, 166, 255, 0.35);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+.editor-canvas.markdown-body .mermaid-diagram-card.selected {
+  outline: 2px solid #58a6ff !important;
+  outline-offset: 3px;
+}
+
+.editor-canvas.markdown-body .mermaid-diagram-card[align="left"] {
+  text-align: left;
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.editor-canvas.markdown-body .mermaid-diagram-card[align="center"] {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.editor-canvas.markdown-body .mermaid-diagram-card[align="right"] {
+  text-align: right;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.mermaid-svg-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px;
+}
+
+.mermaid-svg-container svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Diagram Error Fallback Card */
+.editor-canvas.markdown-body .mermaid-diagram-card.error {
+  border-color: rgba(255, 123, 114, 0.4);
+  background: rgba(40, 16, 18, 0.6);
+  padding: 12px 16px;
+  text-align: left;
+}
+
+.mermaid-error-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ff7b72;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.mermaid-error-message {
+  font-family: var(--mono-font-family, monospace);
+  font-size: 12px;
+  color: #f0f6fc;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+/* ── Diagram Insert Popover ────────────────────────────────────────── */
+.diagram-popover {
+  width: 380px;
+  padding: 14px;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diagram-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.diagram-popover-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e6edf3;
+  letter-spacing: 0.3px;
+}
+
+.diagram-template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.diagram-template-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.diagram-template-card:hover {
+  background: rgba(88, 166, 255, 0.12);
+  border-color: rgba(88, 166, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.template-card-icon {
+  width: 20px;
+  height: 20px;
+  stroke: #58a6ff;
+  fill: none;
+  stroke-width: 2;
+  margin-bottom: 6px;
+}
+
+.template-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.template-card-desc {
+  font-size: 10.5px;
+  color: var(--text-muted, #8b949e);
+  line-height: 1.3;
+}
+
+/* ── Contextual In-Canvas Diagram Toolbar ──────────────────────────── */
+.diagram-canvas-toolbar {
+  position: absolute;
+  z-index: 105;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  background: rgba(22, 24, 29, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+  user-select: none;
+  -webkit-user-select: none;
+  animation: contextToolbarIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.diagram-canvas-toolbar.visible {
+  display: flex;
+}
+
+/* ── Diagram Live Edit Modal ──────────────────────────────────────── */
+.diagram-edit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.diagram-modal-dialog {
+  position: relative;
+  z-index: 501;
+  width: 900px;
+  max-width: 94vw;
+  height: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #16181d;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+  animation: emptyFadeIn 0.2s ease;
+}
+
+.diagram-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.diagram-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diagram-modal-title-icon {
+  width: 20px;
+  height: 20px;
+  stroke: #58a6ff;
+  fill: none;
+  stroke-width: 2;
+}
+
+.diagram-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.diagram-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #8b949e);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.diagram-modal-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.diagram-modal-close-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.diagram-modal-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diagram-modal-preview-pane {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 11, 14, 0.85);
+  min-height: 0;
+}
+
+.diagram-preview-header {
+  padding: 10px 16px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #8b949e);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diagram-modal-svg-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: auto;
+}
+
+.diagram-modal-svg-container svg {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+.diagram-modal-error {
+  padding: 10px 16px;
+  background: rgba(255, 123, 114, 0.15);
+  border-top: 1px solid rgba(255, 123, 114, 0.3);
+  color: #ff7b72;
+  font-family: var(--mono-font-family, monospace);
+  font-size: 11.5px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  max-height: 90px;
+  overflow-y: auto;
+}
+
+.diagram-modal-editor-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #16181d;
+}
+
+.diagram-snippets-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  overflow-x: auto;
+}
+
+.snippets-label {
+  font-size: 11px;
+  color: var(--text-muted, #8b949e);
+  white-space: nowrap;
+}
+
+.diagram-snippet-btn {
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: var(--text-secondary, #cccccc);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.diagram-snippet-btn:hover {
+  background: rgba(88, 166, 255, 0.18);
+  border-color: #58a6ff;
+  color: #ffffff;
+}
+
+.diagram-modal-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: var(--mono-font-family, monospace);
+  font-size: 13px;
+  line-height: 1.55;
+  color: #e6edf3;
+  box-sizing: border-box;
+}
+
+.diagram-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.modal-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.modal-btn.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-secondary, #cccccc);
+}
+
+.modal-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.modal-btn.primary {
+  background: #1f6feb;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(31, 111, 235, 0.4);
+}
+
+.modal-btn.primary:hover {
+  background: #388bfd;
+  box-shadow: 0 4px 14px rgba(31, 111, 235, 0.55);
+}
+
+

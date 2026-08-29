@@ -53,7 +53,10 @@ pub fn run() {
             // Media Actions
             main_content::media::select_media_dialog,
             main_content::media::read_media_file_base64,
+            // Diagram Actions
+            main_content::diagram::render_mermaid_svg,
         ])
+
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -7,7 +7,7 @@
 //! is loaded, it is compiled into semantic HTML so the user interacts with
 //! formatted rich content directly in the canvas without seeing raw Markdown syntax.
 
-use pulldown_cmark::{html, Options, Parser};
+use pulldown_cmark::{html, CodeBlockKind, Event, Options, Parser, Tag, TagEnd};
 
 /// Configures and returns standard GitHub-Flavored Markdown (GFM) parsing options.
 ///
@@ -31,6 +31,9 @@ pub fn gfm_options() -> Options {
 }
 
 /// Renders a raw Markdown string into clean, structured semantic HTML.
+///
+/// Native Mermaid diagram blocks (```mermaid ... ```) are compiled directly into
+/// vector SVG cards during compilation.
 ///
 /// # Arguments
 /// * `markdown` - The raw Markdown text to compile.
@@ -56,12 +59,41 @@ pub fn render_to_html(markdown: &str) -> String {
     let options = gfm_options();
     let parser = Parser::new_ext(markdown, options);
 
+    let mut in_mermaid = false;
+    let mut mermaid_code = String::new();
+    let mut events = Vec::new();
+
+    for event in parser {
+        match &event {
+            Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
+                if lang.as_ref() == "mermaid" =>
+            {
+                in_mermaid = true;
+                mermaid_code.clear();
+            }
+            Event::End(TagEnd::CodeBlock) if in_mermaid => {
+                in_mermaid = false;
+                let card_html = crate::diagram::render_mermaid_card(&mermaid_code);
+                events.push(Event::Html(card_html.into()));
+            }
+            Event::Text(text) if in_mermaid => {
+                mermaid_code.push_str(text);
+            }
+            _ => {
+                if !in_mermaid {
+                    events.push(event);
+                }
+            }
+        }
+    }
+
     // Pre-allocate buffer based on input length with reasonable estimate
     let mut html_output = String::with_capacity(markdown.len() * 3 / 2);
-    html::push_html(&mut html_output, parser);
+    html::push_html(&mut html_output, events.into_iter());
 
     html_output
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -186,5 +218,17 @@ mod tests {
         assert!(output.contains("<video controls"));
         assert!(output.contains("<audio controls"));
     }
+
+    #[test]
+    fn test_render_mermaid_code_blocks() {
+        let input = "Here is a process diagram:\n\n```mermaid\nflowchart LR\n  A[Start] --> B[Finish]\n```\n\nDone.";
+        let output = render_to_html(input);
+        assert!(output.contains("class=\"mermaid-diagram-card\""));
+        assert!(output.contains("data-mermaid-code"));
+        assert!(output.contains("<svg"));
+        assert!(output.contains("Here is a process diagram:"));
+        assert!(output.contains("Done."));
+    }
 }
+
 

@@ -52,9 +52,26 @@ export async function markdownToDom(
   // 4. Post-process existing HTML5 media figure elements
   postProcessMediaNodes(container);
 
-  // 5. Asynchronously resolve any local relative media files (e.g. assets/demo.png)
+  // 5. Post-process Mermaid diagram cards
+  postProcessMermaidDiagrams(container);
+
+  // 6. Asynchronously resolve any local relative media files (e.g. assets/demo.png)
   await resolveRelativeMedia(container, docPath);
 }
+
+/**
+ * Ensures all Mermaid diagram cards are non-editable in the canvas and have default alignment.
+ */
+export function postProcessMermaidDiagrams(container: HTMLElement): void {
+  const cards = container.querySelectorAll<HTMLElement>('.mermaid-diagram-card');
+  cards.forEach((card) => {
+    card.setAttribute('contenteditable', 'false');
+    if (!card.getAttribute('align')) {
+      card.setAttribute('align', 'center');
+    }
+  });
+}
+
 
 /**
  * Normalizes existing figure elements. Does NOT break inline images or badges.
@@ -481,6 +498,15 @@ function walkNode(node: Node, indentLevel: number = 0): string {
     case 'DIV':
     case 'SECTION':
     case 'ARTICLE': {
+      if (el.classList.contains('mermaid-diagram-card')) {
+        const code = el.getAttribute('data-mermaid-code') || '';
+        const align = el.getAttribute('align') || el.style.textAlign;
+        if (align && align !== 'center') {
+          return `<div align="${align}">\n\n\`\`\`mermaid\n${code.trim()}\n\`\`\`\n\n</div>\n\n`;
+        }
+        return `\`\`\`mermaid\n${code.trim()}\n\`\`\`\n\n`;
+      }
+
       const align = el.getAttribute('align') || el.style.textAlign;
       const inner = serializeChildren(el);
       if (align && (align === 'center' || align === 'right')) {
@@ -488,6 +514,7 @@ function walkNode(node: Node, indentLevel: number = 0): string {
       }
       return inner.endsWith('\n') ? inner : `${inner}\n`;
     }
+
 
     default:
       return serializeChildren(el);

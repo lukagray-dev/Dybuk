@@ -175,8 +175,8 @@ function processMediaFileInsertion(file: File, canvas: HTMLElement): void {
 }
 
 /**
- * Sets up in-canvas clicking on media elements (images, videos, audio, figures)
- * to display the contextual media floating toolbar.
+ * Sets up in-canvas clicking on media and diagram elements to display
+ * their respective contextual floating toolbars.
  */
 function setupCanvasMediaInteraction(): void {
   const canvas = document.getElementById('editor-canvas');
@@ -184,8 +184,19 @@ function setupCanvasMediaInteraction(): void {
 
   canvas.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    const mediaEl = target.closest('img, video, audio, figure.media-wrapper') as HTMLElement | null;
 
+    // Check for Mermaid diagram card click
+    const diagramCard = target.closest('.mermaid-diagram-card') as HTMLElement | null;
+    if (diagramCard && canvas.contains(diagramCard)) {
+      floatingToolbar?.showCanvasDiagramToolbar(diagramCard);
+      floatingToolbar?.hideCanvasMediaToolbar();
+      return;
+    } else if (!target.closest('#canvas-diagram-toolbar') && !target.closest('#diagram-edit-modal')) {
+      floatingToolbar?.hideCanvasDiagramToolbar();
+    }
+
+    // Check for media element click
+    const mediaEl = target.closest('img, video, audio, figure.media-wrapper') as HTMLElement | null;
     if (mediaEl && canvas.contains(mediaEl)) {
       floatingToolbar?.showCanvasMediaToolbar(mediaEl);
     } else if (!target.closest('#canvas-media-toolbar')) {
@@ -193,6 +204,7 @@ function setupCanvasMediaInteraction(): void {
     }
   });
 }
+
 
 
 

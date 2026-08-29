@@ -271,6 +271,29 @@ function setupAppStateSubscriber(): void {
 }
 
 /**
+ * Shows the animated loading overlay spinner in the main content area.
+ */
+export function showDocumentLoading(text: string = 'Opening document...'): void {
+  const overlay = document.getElementById('editor-loading-overlay');
+  if (!overlay) return;
+  const textEl = overlay.querySelector('.loading-overlay-text');
+  if (textEl) {
+    textEl.textContent = text;
+  }
+  overlay.style.display = 'flex';
+}
+
+/**
+ * Hides the document loading overlay.
+ */
+export function hideDocumentLoading(): void {
+  const overlay = document.getElementById('editor-loading-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+/**
  * Subscribes to Tauri filesystem events when the currently active document is modified on disk.
  * Automatically hot-reloads clean documents into the canvas without requiring manual reload.
  */
@@ -293,8 +316,13 @@ function setupDiskWatcherSubscriber(): void {
     // If local document has no unsaved edits, hot-reload immediately
     if (!doc.isDirty) {
       console.debug(`[HotReload] Active file "${doc.name}" changed on disk. Re-rendering canvas.`);
-      await markdownToDom(payload.content, canvas, doc.path);
-      updateStats();
+      showDocumentLoading('Reloading document...');
+      try {
+        await markdownToDom(payload.content, canvas, doc.path);
+        updateStats();
+      } finally {
+        hideDocumentLoading();
+      }
     } else {
       console.warn(`[HotReload] Active file "${doc.name}" changed on disk, but local editor has unsaved changes. Preserving local edits.`);
       const dirtyDot = document.getElementById('topbar-dirty-indicator');
@@ -310,54 +338,59 @@ function setupDiskWatcherSubscriber(): void {
 /**
  * Opens a document into the WYSIWYG canvas.
  * Compiles raw markdown into semantic HTML using the Rust pulldown-cmark backend.
+ * Shows an animated loading spinner overlay during heavy media and decryption processing.
  * Automatically starts watching the target file on disk for external hot-reloads.
  */
 export async function openDocument(path: string, name: string, isDybuk: boolean): Promise<boolean> {
   const canvas = document.getElementById('editor-canvas');
   if (!canvas) return false;
 
-  if (isDybuk) {
-    // Attempt reading with session key or prompt password
-    let content = '';
-    let password = activePassword;
+  showDocumentLoading(isDybuk ? 'Decrypting & loading vault...' : 'Loading document & media...');
 
-    try {
-      const payload = await readDocumentIpc(path, password || undefined);
-      content = payload.content;
-    } catch {
-      // Vault is locked -> Prompt user for passphrase
-      const unlockResult = await showUnlockVaultDialog(path, name);
-      if (!unlockResult) {
-        return false;
+  try {
+    if (isDybuk) {
+      // Attempt reading with session key or prompt password
+      let content = '';
+      let password = activePassword;
+
+      try {
+        const payload = await readDocumentIpc(path, password || undefined);
+        content = payload.content;
+      } catch {
+        hideDocumentLoading();
+        // Vault is locked -> Prompt user for passphrase
+        const unlockResult = await showUnlockVaultDialog(path, name);
+        if (!unlockResult) {
+          return false;
+        }
+        showDocumentLoading('Decrypting & loading vault...');
+        content = unlockResult.payload.content;
+        activePassword = unlockResult.password;
       }
-      content = unlockResult.payload.content;
-      activePassword = unlockResult.password;
-    }
 
-    // Compile Markdown to semantic HTML in canvas
-    await markdownToDom(content, canvas, path);
+      // Compile Markdown to semantic HTML in canvas
+      await markdownToDom(content, canvas, path);
 
-    appState.setCurrentDoc({
-      path,
-      name,
-      isDybuk: true,
-      isDirty: false,
-      isUnlocked: true,
-    });
+      appState.setCurrentDoc({
+        path,
+        name,
+        isDybuk: true,
+        isDirty: false,
+        isUnlocked: true,
+      });
 
-    // Start watching active file on disk
-    try {
-      await invokeIpc('watch_active_document', { path });
-    } catch (watchErr) {
-      console.warn('[Watcher] Failed to attach file watcher:', watchErr);
-    }
+      // Start watching active file on disk
+      try {
+        await invokeIpc('watch_active_document', { path });
+      } catch (watchErr) {
+        console.warn('[Watcher] Failed to attach file watcher:', watchErr);
+      }
 
-    updateStats();
-    canvas.focus();
-    return true;
-  } else {
-    // Plain markdown document
-    try {
+      updateStats();
+      canvas.focus();
+      return true;
+    } else {
+      // Plain markdown document
       const payload = await readDocumentIpc(path);
       await markdownToDom(payload.content, canvas, path);
 
@@ -380,13 +413,16 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
       updateStats();
       canvas.focus();
       return true;
-    } catch (err) {
-      console.error('Failed to read markdown document:', err);
-      alert(`Could not open document: ${err instanceof Error ? err.message : String(err)}`);
-      return false;
     }
+  } catch (err) {
+    console.error('Failed to read document:', err);
+    alert(`Could not open document: ${err instanceof Error ? err.message : String(err)}`);
+    return false;
+  } finally {
+    hideDocumentLoading();
   }
 }
+
 
 /**
  * Saves the current active document to disk.

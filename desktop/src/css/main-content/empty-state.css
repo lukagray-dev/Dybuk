@@ -251,3 +251,60 @@
   color: var(--text-secondary, #cccccc);
 }
 
+/* ── Document Loading Overlay & Spinner ───────────────────────────── */
+.editor-loading-overlay {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  user-select: none;
+  -webkit-user-select: none;
+  animation: loadingFadeIn 0.18s ease;
+}
+
+@keyframes loadingFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.loading-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 32px;
+  background: rgba(22, 24, 29, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+}
+
+.loading-spinner-svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 0 16px rgba(88, 166, 255, 0.5));
+}
+
+.loading-overlay-text {
+  font-family: var(--font-family, 'Open Sans', sans-serif);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-secondary, #e6edf3);
+  letter-spacing: 0.2px;
+}
+
+

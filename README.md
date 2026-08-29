@@ -14,9 +14,9 @@
 
 ***A box for thoughts you never want escaping into the world.***
 
-[<img src="https://img.shields.io/badge/Rust-2021-orange?style=flat-square&logo=rust" alt="Rust" width="10%" align="center" />](https://www.rust-lang.org/)
-[<img src="https://img.shields.io/badge/Tauri-v2-24C8D8?style=flat-square&logo=tauri" alt="Tauri v2" width="10%" align="center" />](https://tauri.app/)
-[<img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=flat-square" alt="License" width="12%" align="center" />](./LICENSE)
+[<img src="https://img.shields.io/badge/Rust-2021-orange?style=flat-square&logo=rust" alt="Rust" align="center" />](https://www.rust-lang.org/)
+[<img src="https://img.shields.io/badge/Tauri-v2-24C8D8?style=flat-square&logo=tauri" alt="Tauri v2" align="center" />](https://tauri.app/)
+[<img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=flat-square" alt="License" align="center" />](./LICENSE)
 
 <img src="assets/demo.png" alt="demo" width="100%" />
 

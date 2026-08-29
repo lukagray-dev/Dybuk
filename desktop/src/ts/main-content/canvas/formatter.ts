@@ -909,38 +909,76 @@ export function insertMediaNode(options: MediaInsertOptions, canvas: HTMLElement
 }
 
 /**
- * Updates properties (width, alignment, caption) of an existing media figure element.
+ * Updates properties (width, alignment, caption) of an existing media element (figure, img, video, audio).
  */
 export function updateMediaNode(
-  figure: HTMLElement,
+  el: HTMLElement,
   updates: { width?: string; align?: 'left' | 'center' | 'right'; caption?: string }
 ): void {
+  const isFigure = el.tagName.toUpperCase() === 'FIGURE';
+  const mediaEl = isFigure ? el.querySelector<HTMLElement>('img, video, audio') : el;
+
+  if (updates.width && mediaEl) {
+    let widthVal = updates.width.trim();
+    if (widthVal.toLowerCase() === 'auto') {
+      mediaEl.style.width = '';
+      mediaEl.removeAttribute('width');
+      if (isFigure) {
+        el.style.width = '';
+      }
+    } else {
+      if (/^\d+$/.test(widthVal)) {
+        widthVal = `${widthVal}%`;
+      }
+      mediaEl.style.width = widthVal;
+      if (isFigure) {
+        el.style.width = widthVal;
+      }
+      if (mediaEl.tagName.toUpperCase() === 'IMG') {
+        if (widthVal.endsWith('px')) {
+          mediaEl.setAttribute('width', widthVal.replace('px', ''));
+        } else {
+          mediaEl.setAttribute('width', widthVal);
+        }
+      }
+    }
+  }
+
   if (updates.align) {
-    figure.setAttribute('align', updates.align);
+    if (isFigure) {
+      el.setAttribute('align', updates.align);
+      el.style.textAlign = updates.align;
+    } else {
+      // Find the closest block container (<p> or <div>) so the entire row aligns accurately
+      const blockContainer = el.closest('p, div, figure') as HTMLElement | null;
+      if (blockContainer) {
+        blockContainer.setAttribute('align', updates.align);
+        blockContainer.style.textAlign = updates.align;
+      } else {
+        el.setAttribute('align', updates.align);
+      }
+    }
   }
 
-  const mediaEl = figure.querySelector<HTMLElement>('img, video, audio');
-  if (mediaEl && updates.width) {
-    mediaEl.style.width = updates.width;
-  }
-
-  if (updates.caption !== undefined) {
-    let captionEl = figure.querySelector<HTMLElement>('figcaption');
+  if (updates.caption !== undefined && isFigure) {
+    let captionEl = el.querySelector<HTMLElement>('figcaption');
     if (!captionEl) {
       captionEl = document.createElement('figcaption');
       captionEl.setAttribute('contenteditable', 'true');
-      figure.appendChild(captionEl);
+      el.appendChild(captionEl);
     }
     captionEl.textContent = updates.caption;
   }
 }
 
+
 /**
- * Removes a media figure container from the canvas DOM.
+ * Removes a media container or element from the canvas DOM.
  */
-export function removeMediaNode(figure: HTMLElement): void {
-  const parent = figure.parentNode;
+export function removeMediaNode(el: HTMLElement): void {
+  const parent = el.parentNode;
   if (parent) {
-    parent.removeChild(figure);
+    parent.removeChild(el);
   }
 }
+

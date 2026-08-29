@@ -741,6 +741,24 @@
   transition: all 0.1s ease;
 }
 
+.media-custom-width-input {
+  width: 54px;
+  height: 20px;
+  padding: 0 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  color: #ffffff;
+  font-family: var(--mono-font-family, monospace);
+  font-size: 10.5px;
+  text-align: center;
+  outline: none;
+}
+
+.media-custom-width-input:focus {
+  border-color: #007acc;
+}
+
 .media-size-pill:hover,
 .media-align-pill:hover {
   color: #ffffff;
@@ -761,33 +779,77 @@
 }
 
 /* ── WYSIWYG In-Canvas Media Container Styles ─────────────────────── */
-.editor-canvas.markdown-body figure.media-wrapper {
-  margin: 14px 0;
+/* Standard GFM Image & Media Display matching VS Code */
+.editor-canvas.markdown-body img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  border-radius: 4px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: outline 0.12s ease;
+}
+
+.editor-canvas.markdown-body a img {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Block alignment matching VS Code markdown preview */
+.editor-canvas.markdown-body div[align="center"],
+.editor-canvas.markdown-body p[align="center"] {
+  text-align: center !important;
+}
+
+.editor-canvas.markdown-body div[align="left"],
+.editor-canvas.markdown-body p[align="left"] {
+  text-align: left !important;
+}
+
+.editor-canvas.markdown-body div[align="right"],
+.editor-canvas.markdown-body p[align="right"] {
+  text-align: right !important;
+}
+
+/* Selected state highlight for direct click on any image/video/audio */
+.editor-canvas.markdown-body img.selected,
+.editor-canvas.markdown-body video.selected,
+.editor-canvas.markdown-body audio.selected,
+.editor-canvas.markdown-body figure.selected {
+  outline: 2px solid #58a6ff !important;
+  outline-offset: 2px;
+}
+
+.editor-canvas.markdown-body figure.media-wrapper,
+.editor-canvas.markdown-body figure {
+  margin: 14px auto;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: block;
   position: relative;
   border-radius: 6px;
-  transition: outline 0.15s ease;
-  user-select: none;
-  -webkit-user-select: none;
+  box-sizing: border-box;
 }
 
-.editor-canvas.markdown-body figure.media-wrapper.selected {
-  outline: 2px solid #58a6ff;
-  outline-offset: 3px;
+.editor-canvas.markdown-body figure.media-wrapper[align="center"],
+.editor-canvas.markdown-body figure[align="center"] {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.editor-canvas.markdown-body figure.media-wrapper[align="center"] {
-  align-items: center;
+.editor-canvas.markdown-body figure.media-wrapper[align="left"],
+.editor-canvas.markdown-body figure[align="left"] {
+  text-align: left;
+  margin-left: 0;
+  margin-right: auto;
 }
 
-.editor-canvas.markdown-body figure.media-wrapper[align="left"] {
-  align-items: flex-start;
-}
-
-.editor-canvas.markdown-body figure.media-wrapper[align="right"] {
-  align-items: flex-end;
+.editor-canvas.markdown-body figure.media-wrapper[align="right"],
+.editor-canvas.markdown-body figure[align="right"] {
+  text-align: right;
+  margin-left: auto;
+  margin-right: 0;
 }
 
 .editor-canvas.markdown-body figure.media-wrapper img,
@@ -803,9 +865,10 @@
 .editor-canvas.markdown-body figure.media-wrapper audio {
   width: 100%;
   max-width: 480px;
-  margin: 6px 0;
+  margin: 6px auto;
   border-radius: 6px;
 }
+
 
 .editor-canvas.markdown-body figure.media-wrapper figcaption {
   font-size: 12.5px;
@@ -855,7 +918,34 @@
 .media-toolbar-group {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
+}
+
+.media-tb-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted, #8b949e);
+  margin-right: 1px;
+}
+
+.media-tb-size-input {
+  width: 58px;
+  height: 22px;
+  padding: 0 4px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  color: #ffffff;
+  font-family: var(--mono-font-family, monospace);
+  font-size: 11px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.media-tb-size-input:focus {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 1px #58a6ff;
 }
 
 .media-toolbar-separator {
@@ -904,3 +994,4 @@
   background: rgba(255, 107, 107, 0.2);
   color: #ff6b6b;
 }
+

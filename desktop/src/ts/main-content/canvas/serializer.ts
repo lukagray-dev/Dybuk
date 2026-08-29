@@ -2,6 +2,7 @@
 // Compiles Markdown -> HTML via Rust pulldown-cmark backend, and DOM -> Markdown via pure-TS walker
 
 import { renderMarkdownIpc } from '../markdown/ipc.js';
+import { invokeIpc } from '../../shared/ipc.js';
 
 /**
  * Compiles a raw Markdown string into structured semantic HTML via the Rust backend
@@ -9,8 +10,13 @@ import { renderMarkdownIpc } from '../markdown/ipc.js';
  *
  * @param markdown - Raw Markdown source string.
  * @param container - The contenteditable canvas HTMLElement.
+ * @param docPath - Optional file path of the currently open document for relative asset resolution.
  */
-export async function markdownToDom(markdown: string, container: HTMLElement): Promise<void> {
+export async function markdownToDom(
+  markdown: string,
+  container: HTMLElement,
+  docPath?: string | null
+): Promise<void> {
   if (!markdown || markdown.trim().length === 0) {
     container.innerHTML = '<p><br></p>';
     return;
@@ -43,15 +49,17 @@ export async function markdownToDom(markdown: string, container: HTMLElement): P
     });
   });
 
-  // 4. Post-process HTML5 media elements (images, videos, audio) with interactive wrappers
+  // 4. Post-process existing HTML5 media figure elements
   postProcessMediaNodes(container);
+
+  // 5. Asynchronously resolve any local relative media files (e.g. assets/demo.png)
+  await resolveRelativeMedia(container, docPath);
 }
 
 /**
- * Normalizes and wraps media elements into interactive `.media-wrapper` figure cards.
+ * Normalizes existing figure elements. Does NOT break inline images or badges.
  */
 export function postProcessMediaNodes(container: HTMLElement): void {
-  // Process existing figure elements
   const figures = container.querySelectorAll<HTMLElement>('figure');
   figures.forEach((fig) => {
     fig.classList.add('media-wrapper');
@@ -64,28 +72,69 @@ export function postProcessMediaNodes(container: HTMLElement): void {
       caption.setAttribute('contenteditable', 'true');
     }
   });
-
-  // Wrap standalone img, video, audio tags that are not inside a figure
-  const mediaElements = container.querySelectorAll<HTMLElement>('img, video, audio');
-  mediaElements.forEach((media) => {
-    if (media.closest('figure.media-wrapper')) {
-      return;
-    }
-
-    const figure = document.createElement('figure');
-    figure.className = 'media-wrapper';
-    figure.setAttribute('contenteditable', 'false');
-
-    const align = media.getAttribute('align') || 'center';
-    figure.setAttribute('align', align);
-
-    const parent = media.parentNode;
-    if (parent) {
-      parent.insertBefore(figure, media);
-      figure.appendChild(media);
-    }
-  });
 }
+
+/**
+ * Resolves local relative media filepaths (e.g. assets/demo.png) relative to the active document
+ * and loads them via Base64 streaming so they render without broken image icons in Tauri.
+ */
+export async function resolveRelativeMedia(
+  container: HTMLElement,
+  docPath?: string | null
+): Promise<void> {
+  if (!docPath) return;
+
+  const docDir = docPath.replace(/\\/g, '/').replace(/\/[^/]*$/, '');
+  if (!docDir) return;
+
+  const mediaElements = container.querySelectorAll<HTMLElement>('img, video, audio, source');
+  for (let i = 0; i < mediaElements.length; i++) {
+    const el = mediaElements[i];
+    if (!el) continue;
+
+    const rawSrc = el.getAttribute('src');
+    if (!rawSrc) continue;
+
+    const srcTrimmed = rawSrc.trim();
+    if (!srcTrimmed) continue;
+
+    const isRemoteOrData =
+      srcTrimmed.startsWith('http://') ||
+      srcTrimmed.startsWith('https://') ||
+      srcTrimmed.startsWith('data:') ||
+      srcTrimmed.startsWith('asset:') ||
+      srcTrimmed.startsWith('blob:') ||
+      srcTrimmed.startsWith('//');
+
+    const isAbsoluteLocal =
+      srcTrimmed.startsWith('/') ||
+      /^[a-zA-Z]:[\\/]/.test(srcTrimmed) ||
+      srcTrimmed.startsWith('\\');
+
+    if (!isRemoteOrData) {
+      // Store original relative path so we can cleanly serialize it back on save
+      el.setAttribute('data-original-src', srcTrimmed);
+
+      let fullPath = srcTrimmed;
+      if (!isAbsoluteLocal) {
+        const cleanRelative = srcTrimmed.replace(/^\.\//, '');
+        fullPath = `${docDir}/${cleanRelative}`;
+      }
+
+      try {
+        const payload = await invokeIpc<{ data_url: string }>('read_media_file_base64', {
+          path: fullPath,
+        });
+        if (payload && payload.data_url) {
+          el.setAttribute('src', payload.data_url);
+        }
+      } catch (err) {
+        console.warn(`[Media] Could not load local relative media "${srcTrimmed}" from "${fullPath}":`, err);
+      }
+    }
+  }
+}
+
 
 
 /**
@@ -364,16 +413,16 @@ function walkNode(node: Node, indentLevel: number = 0): string {
 
       let mediaHtml = '';
       if (img) {
-        const src = img.getAttribute('src') || '';
+        const src = img.getAttribute('data-original-src') || img.getAttribute('src') || '';
         const alt = img.getAttribute('alt') || captionText || '';
         const width = img.style.width || img.getAttribute('width');
         mediaHtml = `<img src="${src}" alt="${alt}"${width ? ` width="${width}"` : ''} />`;
       } else if (video) {
-        const src = video.getAttribute('src') || '';
+        const src = video.getAttribute('data-original-src') || video.getAttribute('src') || '';
         const width = video.style.width || video.getAttribute('width');
         mediaHtml = `<video controls src="${src}"${width ? ` width="${width}"` : ''}></video>`;
       } else if (audio) {
-        const src = audio.getAttribute('src') || '';
+        const src = audio.getAttribute('data-original-src') || audio.getAttribute('src') || '';
         const width = audio.style.width || audio.getAttribute('width');
         mediaHtml = `<audio controls src="${src}"${width ? ` width="${width}"` : ''}></audio>`;
       }
@@ -389,24 +438,39 @@ function walkNode(node: Node, indentLevel: number = 0): string {
     }
 
     case 'IMG': {
-      const src = el.getAttribute('src') || '';
+      const src = el.getAttribute('data-original-src') || el.getAttribute('src') || '';
       const alt = el.getAttribute('alt') || '';
-      const width = el.style.width || el.getAttribute('width');
+      const rawWidth = el.getAttribute('width') || el.style.width || '';
       const align = el.getAttribute('align') || el.style.textAlign;
-      return `<img src="${src}" alt="${alt}"${width ? ` width="${width}"` : ''}${align ? ` align="${align}"` : ''} />\n\n`;
+
+      const isInsideLink = el.closest('a') !== null;
+      let width = rawWidth.trim();
+      // Unset width when it represents natural/auto sizing or when an inline link badge is 100%
+      if (width === 'auto' || width === '' || (isInsideLink && (width === '100%' || width === '100'))) {
+        width = '';
+      }
+
+      if (!width && !align) {
+        return `![${alt}](${src})`;
+      }
+      return `<img src="${src}" alt="${alt}"${width ? ` width="${width}"` : ''}${align ? ` align="${align}"` : ''} />`;
     }
 
     case 'VIDEO': {
-      const src = el.getAttribute('src') || '';
-      const width = el.style.width || el.getAttribute('width');
-      return `<video controls src="${src}"${width ? ` width="${width}"` : ''}></video>\n\n`;
+      const src = el.getAttribute('data-original-src') || el.getAttribute('src') || '';
+      const rawWidth = el.getAttribute('width') || el.style.width || '';
+      const width = rawWidth === 'auto' || rawWidth === '100%' ? '' : rawWidth;
+      return `<video controls src="${src}"${width ? ` width="${width}"` : ''}></video>`;
     }
 
     case 'AUDIO': {
-      const src = el.getAttribute('src') || '';
-      const width = el.style.width || el.getAttribute('width');
-      return `<audio controls src="${src}"${width ? ` width="${width}"` : ''}></audio>\n\n`;
+      const src = el.getAttribute('data-original-src') || el.getAttribute('src') || '';
+      const rawWidth = el.getAttribute('width') || el.style.width || '';
+      const width = rawWidth === 'auto' || rawWidth === '100%' ? '' : rawWidth;
+      return `<audio controls src="${src}"${width ? ` width="${width}"` : ''}></audio>`;
     }
+
+
 
     case 'TABLE':
       return serializeTable(el as HTMLTableElement);

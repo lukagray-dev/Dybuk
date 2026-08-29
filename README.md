@@ -1,20 +1,28 @@
 <div align="center">
 
-<img src="assets/logo.svg" width="80" alt="Dybuk" />
-
-# **Dybuk**
-
-***A box for thoughts you never want escaping into the world.***
-
-[![Rust](https://img.shields.io/badge/Rust-2021-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
-[![Tauri v2](https://img.shields.io/badge/Tauri-v2-24C8D8?style=flat-square&logo=tauri)](https://tauri.app/)
-[![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=flat-square)](./LICENSE)
-
-![demo](assets/demo.png)
+<img src="assets/logo.svg" alt="Dybuk" width="25%" />
 
 </div>
 
-## **What is Dybuk?**
+<div align="center">
+
+# Dybuk
+
+</div>
+
+<div align="center">
+
+***A box for thoughts you never want escaping into the world.***
+
+[<img src="https://img.shields.io/badge/Rust-2021-orange?style=flat-square&logo=rust" alt="Rust" width="10%" align="center" />](https://www.rust-lang.org/)
+[<img src="https://img.shields.io/badge/Tauri-v2-24C8D8?style=flat-square&logo=tauri" alt="Tauri v2" width="10%" align="center" />](https://tauri.app/)
+[<img src="https://img.shields.io/badge/License-AGPL--3.0-green?style=flat-square" alt="License" width="12%" align="center" />](./LICENSE)
+
+<img src="assets/demo.png" alt="demo" width="100%" />
+
+</div>
+
+## What is Dybuk?
 
 Dybuk is a minimal, distraction-free markdown editor for people who don’t want to learn markdown. Write like you’re using Notepad, headers, bold, lists, code blocks, math, all handled by simple shortcuts and a clean contextual toolbar. No syntax clutter.
 
@@ -25,7 +33,7 @@ Perfect for scriptwriters, private note takers, diary writers, and anyone tired 
 > [!NOTE]
 > **For anyone who stopped keeping a diary because they were terrified someone might read it:** Write your life with complete honesty without hiding notebook pages or fearing curious eyes.
 
-## **Why Dybuk?**
+## Why Dybuk?
 
 - **Zero Syntax Overhead:** Write naturally with full rich formatting; markdown serialization happens seamlessly behind the scenes.
 - **Encrypted Vaults (`.dybuk`):** Lock your notes on disk using **military-grade AES-256-GCM** authenticated encryption and **Argon2id** password hashing.
@@ -181,6 +189,7 @@ Dybuk/
 ### For Users
 
 > Don’t want to build Dybuk yourself? Download the latest pre-built release and start writing:
+>
 >
 > **[→ Download Dybuk](https://github.com/lukagray-dev/Dybuk/releases)**
 

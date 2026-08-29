@@ -175,7 +175,8 @@ function processMediaFileInsertion(file: File, canvas: HTMLElement): void {
 }
 
 /**
- * Sets up in-canvas clicking on media figures to display the contextual media floating toolbar.
+ * Sets up in-canvas clicking on media elements (images, videos, audio, figures)
+ * to display the contextual media floating toolbar.
  */
 function setupCanvasMediaInteraction(): void {
   const canvas = document.getElementById('editor-canvas');
@@ -183,15 +184,16 @@ function setupCanvasMediaInteraction(): void {
 
   canvas.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    const figure = target.closest('.media-wrapper') as HTMLElement | null;
+    const mediaEl = target.closest('img, video, audio, figure.media-wrapper') as HTMLElement | null;
 
-    if (figure && canvas.contains(figure)) {
-      floatingToolbar?.showCanvasMediaToolbar(figure);
+    if (mediaEl && canvas.contains(mediaEl)) {
+      floatingToolbar?.showCanvasMediaToolbar(mediaEl);
     } else if (!target.closest('#canvas-media-toolbar')) {
       floatingToolbar?.hideCanvasMediaToolbar();
     }
   });
 }
+
 
 
 /**
@@ -291,7 +293,7 @@ function setupDiskWatcherSubscriber(): void {
     // If local document has no unsaved edits, hot-reload immediately
     if (!doc.isDirty) {
       console.debug(`[HotReload] Active file "${doc.name}" changed on disk. Re-rendering canvas.`);
-      await markdownToDom(payload.content, canvas);
+      await markdownToDom(payload.content, canvas, doc.path);
       updateStats();
     } else {
       console.warn(`[HotReload] Active file "${doc.name}" changed on disk, but local editor has unsaved changes. Preserving local edits.`);
@@ -333,7 +335,7 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
     }
 
     // Compile Markdown to semantic HTML in canvas
-    await markdownToDom(content, canvas);
+    await markdownToDom(content, canvas, path);
 
     appState.setCurrentDoc({
       path,
@@ -357,7 +359,7 @@ export async function openDocument(path: string, name: string, isDybuk: boolean)
     // Plain markdown document
     try {
       const payload = await readDocumentIpc(path);
-      await markdownToDom(payload.content, canvas);
+      await markdownToDom(payload.content, canvas, path);
 
       activePassword = '';
       appState.setCurrentDoc({

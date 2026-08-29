@@ -509,6 +509,7 @@
             <div class="media-options-row">
               <div class="media-option-group">
                 <span class="media-option-label">Width</span>
+                <input id="toolbar-media-custom-width" class="media-custom-width-input" type="text" placeholder="100%" value="100%" title="Custom width percentage or pixels (e.g. 100%, 80px)" />
                 <div class="media-pill-group">
                   <button class="media-size-pill" data-size="25%">25%</button>
                   <button class="media-size-pill" data-size="50%">50%</button>
@@ -586,13 +587,22 @@
 
       <!-- In-Canvas Contextual Media Action Bubble Toolbar -->
       <div id="canvas-media-toolbar" class="canvas-media-toolbar" role="toolbar" aria-label="Media Formatting">
+        <!-- Freeform Custom Size Input -->
+        <div class="media-toolbar-group">
+          <span class="media-tb-label">W:</span>
+          <input id="media-tb-size-input" class="media-tb-size-input" type="text" placeholder="100%" title="Type custom width (e.g. 80px, 45%, 320)" />
+        </div>
+        <div class="media-toolbar-separator"></div>
+        <!-- Quick Size Presets -->
         <div class="media-toolbar-group">
           <button class="media-tb-btn" data-action="size" data-value="25%" title="Width 25%">25%</button>
           <button class="media-tb-btn" data-action="size" data-value="50%" title="Width 50%">50%</button>
           <button class="media-tb-btn" data-action="size" data-value="75%" title="Width 75%">75%</button>
           <button class="media-tb-btn" data-action="size" data-value="100%" title="Full Width (100%)">100%</button>
+          <button class="media-tb-btn" data-action="size" data-value="auto" title="Original (Auto)">Auto</button>
         </div>
         <div class="media-toolbar-separator"></div>
+        <!-- Alignment Controls -->
         <div class="media-toolbar-group">
           <button class="media-tb-btn" data-action="align" data-value="left" title="Align Left">
             <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
@@ -605,6 +615,7 @@
           </button>
         </div>
         <div class="media-toolbar-separator"></div>
+        <!-- Delete Control -->
         <div class="media-toolbar-group">
           <button id="media-tb-delete" class="media-tb-btn danger" title="Remove Media">
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -614,4 +625,5 @@
     </div>
   </body>
 </html>
+
 

@@ -59,7 +59,9 @@ export class FloatingToolbar {
   private mediaFileStatusEl: HTMLElement | null = null;
   private mediaUrlInputEl: HTMLInputElement | null = null;
   private mediaCaptionInputEl: HTMLInputElement | null = null;
+  private mediaCustomWidthInputEl: HTMLInputElement | null = null;
   private canvasMediaToolbarEl: HTMLElement | null = null;
+  private canvasMediaSizeInputEl: HTMLInputElement | null = null;
   private activeMediaFigure: HTMLElement | null = null;
 
   // State
@@ -111,8 +113,11 @@ export class FloatingToolbar {
     this.mediaFileStatusEl = document.getElementById('tb-media-file-status');
     this.mediaUrlInputEl = document.getElementById('toolbar-media-url-input') as HTMLInputElement | null;
     this.mediaCaptionInputEl = document.getElementById('toolbar-media-caption-input') as HTMLInputElement | null;
+    this.mediaCustomWidthInputEl = document.getElementById('toolbar-media-custom-width') as HTMLInputElement | null;
     this.canvasMediaToolbarEl = document.getElementById('canvas-media-toolbar');
+    this.canvasMediaSizeInputEl = document.getElementById('media-tb-size-input') as HTMLInputElement | null;
   }
+
 
 
   /**
@@ -201,7 +206,9 @@ export class FloatingToolbar {
       document.activeElement === this.linkInputEl ||
       document.activeElement === this.mathInputEl ||
       document.activeElement === this.mediaUrlInputEl ||
-      document.activeElement === this.mediaCaptionInputEl
+      document.activeElement === this.mediaCaptionInputEl ||
+      document.activeElement === this.mediaCustomWidthInputEl ||
+      document.activeElement === this.canvasMediaSizeInputEl
     ) {
       return;
     }
@@ -211,6 +218,7 @@ export class FloatingToolbar {
       this.hideAll();
       return;
     }
+
 
 
     const range = selection.getRangeAt(0);
@@ -903,12 +911,20 @@ export class FloatingToolbar {
       }
     });
 
-    // 4. Width size selector pills
+    // 4. Width size selector pills & custom input
+    this.mediaCustomWidthInputEl?.addEventListener('input', () => {
+      document.querySelectorAll('.media-size-pill').forEach((b) => b.classList.remove('active'));
+      this.selectedMediaSize = this.mediaCustomWidthInputEl?.value.trim() || '100%';
+    });
+
     document.querySelectorAll<HTMLElement>('.media-size-pill').forEach((btn) => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.media-size-pill').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         this.selectedMediaSize = btn.dataset.size || '100%';
+        if (this.mediaCustomWidthInputEl) {
+          this.mediaCustomWidthInputEl.value = this.selectedMediaSize;
+        }
       });
     });
 
@@ -950,13 +966,15 @@ export class FloatingToolbar {
       if (isVideo) mediaType = 'video';
       else if (isAudio) mediaType = 'audio';
 
+      const customWidth = this.mediaCustomWidthInputEl?.value.trim() || this.selectedMediaSize || '100%';
+
       insertMediaNode(
         {
           src,
           mediaType,
           caption: caption || undefined,
           alt: caption || undefined,
-          width: this.selectedMediaSize,
+          width: customWidth,
           align: this.selectedMediaAlign,
         },
         this.canvas
@@ -1014,20 +1032,43 @@ export class FloatingToolbar {
     }
     if (this.mediaUrlInputEl) this.mediaUrlInputEl.value = '';
     if (this.mediaCaptionInputEl) this.mediaCaptionInputEl.value = '';
+    if (this.mediaCustomWidthInputEl) this.mediaCustomWidthInputEl.value = '100%';
   }
 
   /**
-   * Configures in-canvas contextual media bubble toolbar (Resizing, Alignment, Delete).
+   * Configures in-canvas contextual media bubble toolbar (Freeform Resizing, Alignment, Delete).
    */
   private setupCanvasMediaToolbar(): void {
     if (!this.canvasMediaToolbarEl) return;
 
     // Prevent mousedown on media toolbar from collapsing canvas selection
     this.canvasMediaToolbarEl.addEventListener('mousedown', (e) => {
-      e.preventDefault();
+      if ((e.target as HTMLElement).tagName.toUpperCase() !== 'INPUT') {
+        e.preventDefault();
+      }
     });
 
-    // Size and Align button actions
+    // 1. Freeform custom size input
+    const applyFreeformSize = () => {
+      if (!this.activeMediaFigure || !this.canvasMediaSizeInputEl) return;
+      let val = this.canvasMediaSizeInputEl.value.trim();
+      if (!val) val = 'auto';
+      updateMediaNode(this.activeMediaFigure, { width: val });
+      this.syncCanvasMediaToolbarActiveStates(this.activeMediaFigure);
+      this.updateCanvasMediaToolbarPosition(this.activeMediaFigure);
+      this.canvas.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    this.canvasMediaSizeInputEl?.addEventListener('input', applyFreeformSize);
+    this.canvasMediaSizeInputEl?.addEventListener('change', applyFreeformSize);
+    this.canvasMediaSizeInputEl?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyFreeformSize();
+      }
+    });
+
+    // 2. Preset size and alignment button actions
     this.canvasMediaToolbarEl.querySelectorAll<HTMLElement>('.media-tb-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1038,7 +1079,11 @@ export class FloatingToolbar {
 
         if (action === 'size' && val) {
           updateMediaNode(this.activeMediaFigure, { width: val });
+          if (this.canvasMediaSizeInputEl) {
+            this.canvasMediaSizeInputEl.value = val;
+          }
           this.syncCanvasMediaToolbarActiveStates(this.activeMediaFigure);
+          this.updateCanvasMediaToolbarPosition(this.activeMediaFigure);
           this.canvas.dispatchEvent(new Event('input', { bubbles: true }));
         } else if (action === 'align' && (val === 'left' || val === 'center' || val === 'right')) {
           updateMediaNode(this.activeMediaFigure, { align: val });
@@ -1048,7 +1093,7 @@ export class FloatingToolbar {
       });
     });
 
-    // Delete button
+    // 3. Delete button
     document.getElementById('media-tb-delete')?.addEventListener('click', (e) => {
       e.stopPropagation();
       if (this.activeMediaFigure) {
@@ -1068,19 +1113,30 @@ export class FloatingToolbar {
   }
 
   /**
-   * Shows the in-canvas floating media toolbar above a selected media figure.
+   * Shows the in-canvas floating media toolbar above a selected media element (img, video, audio, or figure).
    */
-  public showCanvasMediaToolbar(figure: HTMLElement): void {
-    this.activeMediaFigure = figure;
+  public showCanvasMediaToolbar(targetEl: HTMLElement): void {
+    this.activeMediaFigure = targetEl;
 
     // Remove selection outline from other media
-    this.canvas.querySelectorAll('.media-wrapper').forEach((f) => f.classList.remove('selected'));
-    figure.classList.add('selected');
+    this.canvas.querySelectorAll('.selected').forEach((f) => f.classList.remove('selected'));
+    targetEl.classList.add('selected');
 
     if (this.canvasMediaToolbarEl) {
       this.canvasMediaToolbarEl.classList.add('visible');
-      this.updateCanvasMediaToolbarPosition(figure);
-      this.syncCanvasMediaToolbarActiveStates(figure);
+
+      // Populate current width in the size input box
+      let currentWidth = targetEl.style.width || targetEl.getAttribute('width') || '';
+      if (!currentWidth && targetEl.tagName.toUpperCase() === 'FIGURE') {
+        const inner = targetEl.querySelector<HTMLElement>('img, video, audio');
+        currentWidth = inner?.style.width || inner?.getAttribute('width') || '';
+      }
+      if (this.canvasMediaSizeInputEl) {
+        this.canvasMediaSizeInputEl.value = currentWidth || 'auto';
+      }
+
+      this.updateCanvasMediaToolbarPosition(targetEl);
+      this.syncCanvasMediaToolbarActiveStates(targetEl);
     }
   }
 
@@ -1095,12 +1151,12 @@ export class FloatingToolbar {
     this.canvasMediaToolbarEl?.classList.remove('visible');
   }
 
-  private updateCanvasMediaToolbarPosition(figure: HTMLElement): void {
+  private updateCanvasMediaToolbarPosition(el: HTMLElement): void {
     if (!this.canvasMediaToolbarEl) return;
 
-    const rect = figure.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
     const tbRect = this.canvasMediaToolbarEl.getBoundingClientRect();
-    const tbWidth = tbRect.width || 280;
+    const tbWidth = tbRect.width || 340;
     const tbHeight = tbRect.height || 36;
 
     let left = rect.left + rect.width / 2 - tbWidth / 2;
@@ -1115,24 +1171,37 @@ export class FloatingToolbar {
     this.canvasMediaToolbarEl.style.top = `${top}px`;
   }
 
-  private syncCanvasMediaToolbarActiveStates(figure: HTMLElement): void {
+  private syncCanvasMediaToolbarActiveStates(el: HTMLElement): void {
     if (!this.canvasMediaToolbarEl) return;
 
-    const mediaEl = figure.querySelector<HTMLElement>('img, video, audio');
-    const currentWidth = mediaEl?.style.width || '100%';
-    const currentAlign = figure.getAttribute('align') || 'center';
+    const isFigure = el.tagName.toUpperCase() === 'FIGURE';
+    const mediaEl = isFigure ? el.querySelector<HTMLElement>('img, video, audio') : el;
+    const currentWidth = mediaEl?.style.width || mediaEl?.getAttribute('width') || (isFigure ? el.style.width : '') || '';
+
+    const blockContainer = el.closest('p, div, figure') as HTMLElement | null;
+    const currentAlign =
+      blockContainer?.getAttribute('align') ||
+      blockContainer?.style.textAlign ||
+      el.getAttribute('align') ||
+      'center';
 
     this.canvasMediaToolbarEl.querySelectorAll<HTMLElement>('.media-tb-btn').forEach((btn) => {
       const action = btn.dataset.action;
       const val = btn.dataset.value;
 
       if (action === 'size') {
-        btn.classList.toggle('active', val === currentWidth);
+        const isMatch =
+          val === currentWidth ||
+          (val === '100%' && (currentWidth === '100%' || currentWidth === '100')) ||
+          (val === 'auto' && (!currentWidth || currentWidth.toLowerCase() === 'auto'));
+        btn.classList.toggle('active', isMatch);
       } else if (action === 'align') {
         btn.classList.toggle('active', val === currentAlign);
       }
     });
   }
+
+
 
   private closeAllSubmenus(except?: HTMLElement | null): void {
     const menus = [

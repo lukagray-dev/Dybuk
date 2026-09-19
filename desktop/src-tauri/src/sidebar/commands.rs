@@ -307,3 +307,82 @@ pub async fn remove_recent_cmd(app: AppHandle, path: String) -> Result<(), Strin
 
     Ok(())
 }
+
+/// Reveals a target file inside the OS native file explorer (Windows Explorer, macOS Finder, or Linux).
+///
+/// Hey friend! This handy function highlights the file directly in the file manager so the user
+/// doesn't have to manually browse folders to find where their file is saved!
+#[tauri::command]
+pub async fn reveal_in_explorer(path: String) -> Result<(), String> {
+    let target_path = PathBuf::from(&path);
+    if !target_path.exists() {
+        return Err(format!("File does not exist: {}", path));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, explorer.exe /select,"<path>" will open the folder and highlight the file!
+        let norm_path = target_path.to_string_lossy().replace('/', "\\");
+        std::process::Command::new("explorer")
+            .arg(format!("/select,{}", norm_path))
+            .spawn()
+            .map_err(|e| format!("Failed to launch file explorer: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // On macOS, open -R opens Finder and highlights the file
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map_err(|e| format!("Failed to open Finder: {}", e))?;
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        // On Linux / BSD, open the parent directory with xdg-open
+        if let Some(parent) = target_path.parent() {
+            std::process::Command::new("xdg-open")
+                .arg(parent)
+                .spawn()
+                .map_err(|e| format!("Failed to open file manager: {}", e))?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Permanently removes a file from disk and prunes it from the recents store.
+///
+/// Hey friend! This deletes the physical file from the hard drive when requested by the user,
+/// and ensures that its entry is also removed from recents.json so everything stays synchronized!
+#[tauri::command]
+pub async fn delete_file_from_disk(app: AppHandle, path: String) -> Result<(), String> {
+    let target_path = PathBuf::from(&path);
+
+    // Ensure we are only deleting files, not arbitrary directories
+    if target_path.exists() {
+        if target_path.is_file() {
+            std::fs::remove_file(&target_path)
+                .map_err(|e| format!("Failed to delete file from disk: {}", e))?;
+        } else {
+            return Err("Target path is not a file".to_string());
+        }
+    }
+
+    // Prune from recents store as well
+    let store_path = get_recents_store_path(&app);
+    if store_path.exists() {
+        if let Ok(mut entries) = recents::list_recents(&store_path) {
+            let initial_len = entries.len();
+            entries.retain(|e| e.path != target_path);
+            if entries.len() != initial_len {
+                if let Ok(serialized) = serde_json::to_string_pretty(&entries) {
+                    let _ = std::fs::write(&store_path, serialized);
+                }
+            }
+        }
+    }
+
+    Ok(())
+}

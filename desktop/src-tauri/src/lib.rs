@@ -45,6 +45,13 @@ pub fn run() {
             sidebar::commands::check_vault_unlocked,
             sidebar::commands::get_default_documents_dir,
             sidebar::commands::remove_recent_cmd,
+            sidebar::commands::reveal_in_explorer,
+            sidebar::commands::delete_file_from_disk,
+            // Project Workspace Actions
+            sidebar::projects::open_project_picker,
+            sidebar::projects::list_projects,
+            sidebar::projects::add_project,
+            sidebar::projects::remove_project,
             // Active Document File Watcher Actions
             watcher::commands::watch_active_document,
             watcher::commands::unwatch_active_document,

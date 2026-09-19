@@ -58,6 +58,10 @@
                   <span>Open Document</span>
                   <span class="dropdown-item-shortcut">Ctrl+O</span>
                 </div>
+                <div id="menu-item-open-project" class="dropdown-item">
+                  <span>Open Project</span>
+                  <span class="dropdown-item-shortcut">Ctrl+Shift+O</span>
+                </div>
                 <div id="menu-item-save" class="dropdown-item disabled">
                   <span>Save</span>
                   <span class="dropdown-item-shortcut">Ctrl+S</span>
@@ -182,6 +186,22 @@
 
           <!-- Scrollable Middle Section -->
           <div class="sidebar-scroll-content">
+            <!-- Projects Section -->
+            <section id="section-projects" class="sidebar-section">
+              <div class="section-header" id="header-projects">
+                <div class="section-header-left">
+                  <span class="ui-icon icon-sidebar-chevron-down chevron-icon"></span>
+                  <span class="ui-icon icon-sidebar-projects"></span>
+                  <span>Projects</span>
+                  <span id="projects-count-badge" class="count-pill">0</span>
+                </div>
+                <button id="btn-add-project" class="section-action-btn" title="Open Project Folder">
+                  <span class="ui-icon icon-sidebar-folder-input"></span>
+                </button>
+              </div>
+              <div id="projects-items-container" class="section-items"></div>
+            </section>
+
             <!-- Markdown Category Section -->
             <section id="section-markdown" class="sidebar-section">
               <div class="section-header" id="header-markdown">

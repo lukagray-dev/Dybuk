@@ -1,12 +1,46 @@
-// Custom interactive modal dialog for creating new Markdown (.md) or Dybuk Vault (.dybuk) documents
+// Custom interactive modal dialog for creating new Markdown (.md) or Dybuk Vault (.dybuk) documents,
+// and prompt confirmation modals for dangerous actions (like deleting files).
+//
+// Hey friend! This file manages nice, polished modal popups in Dybuk.
+// Whether you're creating a file or confirming a file deletion, everything
+// looks cohesive, accessible, and native to the app!
 
 import { createDocumentIpc, getDefaultDocumentsDirIpc } from './ipc.js';
 import { DocumentType, RecentDoc } from './types.js';
 
-export async function showCreateDocumentDialog(type: DocumentType): Promise<RecentDoc | null> {
+/**
+ * Options configuring a confirmation modal dialog.
+ */
+export interface ConfirmDialogOptions {
+  /** Main header title of the modal (e.g., "Delete File") */
+  title: string;
+  /** Detailed explanatory message or warning for the user */
+  message: string;
+  /** Label for the confirm button (defaults to "Delete" if isDanger, else "Confirm") */
+  confirmText?: string;
+  /** Label for the cancel button (defaults to "Cancel") */
+  cancelText?: string;
+  /** If true, the confirm button is styled with an alarming danger-red theme */
+  isDanger?: boolean;
+  /** Icon to show in the badge (e.g., 'trash' or 'info') */
+  icon?: 'trash' | 'info';
+}
+
+/**
+ * Displays an interactive modal dialog for creating a new document or vault.
+ *
+ * @param type 'md' for standard markdown, 'dybuk' for encrypted vault.
+ * @param targetDir Optional specific folder to save the document in (e.g., a project root).
+ *                  If omitted, defaults to the user's standard Documents directory.
+ */
+export async function showCreateDocumentDialog(
+  type: DocumentType,
+  targetDir?: string
+): Promise<RecentDoc | null> {
   return new Promise(async (resolve) => {
     const isDybuk = type === 'dybuk';
-    const defaultDir = await getDefaultDocumentsDirIpc();
+    // Use targetDir if provided (e.g. from project header), otherwise default Documents folder
+    const defaultDir = targetDir || (await getDefaultDocumentsDirIpc());
     const defaultExt = isDybuk ? '.dybuk' : '.md';
     const defaultName = isDybuk ? `vault${defaultExt}` : `document${defaultExt}`;
 
@@ -39,7 +73,7 @@ export async function showCreateDocumentDialog(type: DocumentType): Promise<Rece
 
             <div class="form-group">
               <label class="form-label" for="input-doc-dir">Saving Location</label>
-              <input id="input-doc-dir" class="form-input" type="text" value="${defaultDir}" placeholder="Folder path" required />
+              <input id="input-doc-dir" class="form-input" type="text" value="${escapeHtml(defaultDir)}" placeholder="Folder path" required />
             </div>
 
             ${
@@ -102,39 +136,41 @@ export async function showCreateDocumentDialog(type: DocumentType): Promise<Rece
     });
 
     const handleSubmit = async () => {
-      let rawName = nameInput?.value.trim() || '';
-      const rawDir = dirInput?.value.trim() || '';
+      if (!nameInput || !dirInput) return;
 
-      if (!rawName) {
-        if (errorBox) errorBox.textContent = 'File name cannot be empty.';
-        nameInput?.classList.add('error');
+      let name = nameInput.value.trim();
+      const dir = dirInput.value.trim();
+
+      if (!name) {
+        if (errorBox) errorBox.textContent = 'Please provide a file name.';
+        nameInput.classList.add('error');
         return;
       }
 
-      if (!rawDir) {
-        if (errorBox) errorBox.textContent = 'Saving location cannot be empty.';
-        dirInput?.classList.add('error');
+      if (!dir) {
+        if (errorBox) errorBox.textContent = 'Please provide a destination folder.';
+        dirInput.classList.add('error');
         return;
       }
 
-      // Ensure appropriate extension
-      if (!rawName.toLowerCase().endsWith(defaultExt)) {
-        rawName += defaultExt;
+      // Automatically append proper file extension if omitted by user
+      if (!name.toLowerCase().endsWith(defaultExt)) {
+        name += defaultExt;
       }
 
-      // Normalize combined path
-      const separator = rawDir.includes('/') ? '/' : '\\';
-      const fullPath = rawDir.endsWith('/') || rawDir.endsWith('\\')
-        ? `${rawDir}${rawName}`
-        : `${rawDir}${separator}${rawName}`;
+      // Build target path using appropriate separator
+      const separator = dir.includes('\\') ? '\\' : '/';
+      const cleanDir = dir.endsWith('/') || dir.endsWith('\\') ? dir.slice(0, -1) : dir;
+      const fullPath = `${cleanDir}${separator}${name}`;
 
       let password: string | undefined = undefined;
+
       if (isDybuk) {
         const pass = passInput?.value || '';
         const confirmPass = confirmPassInput?.value || '';
 
         if (!pass) {
-          if (errorBox) errorBox.textContent = 'Password is required for encrypted vaults.';
+          if (errorBox) errorBox.textContent = 'Master passphrase cannot be blank.';
           passInput?.classList.add('error');
           return;
         }
@@ -176,3 +212,91 @@ export async function showCreateDocumentDialog(type: DocumentType): Promise<Rece
   });
 }
 
+/**
+ * Displays a clean confirmation dialog prompt to the user.
+ * Returns true if confirmed, false if cancelled or dismissed.
+ */
+export async function showConfirmDialog(options: ConfirmDialogOptions): Promise<boolean> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+
+    const isDanger = options.isDanger ?? false;
+    const confirmText = options.confirmText || (isDanger ? 'Delete' : 'Confirm');
+    const cancelText = options.cancelText || 'Cancel';
+    const iconType = options.icon || (isDanger ? 'trash' : 'info');
+
+    const iconBadgeClass = isDanger ? 'danger' : 'info';
+    const iconClass = iconType === 'trash' ? 'icon-sidebar-trash' : 'icon-sidebar-folder';
+
+    overlay.innerHTML = `
+      <div class="dialog-card" style="max-width: 400px;">
+        <div class="dialog-body">
+          <div class="dialog-header">
+            <div class="dialog-icon-badge ${iconBadgeClass}">
+              <span class="ui-icon ${iconClass}"></span>
+            </div>
+            <div class="dialog-text-content">
+              <h3 class="dialog-title">${escapeHtml(options.title)}</h3>
+              <p class="dialog-message">${escapeHtml(options.message)}</p>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button id="btn-confirm-cancel" type="button" class="dialog-btn dialog-btn-cancel">${escapeHtml(cancelText)}</button>
+          <button id="btn-confirm-ok" type="button" class="dialog-btn dialog-btn-confirm ${isDanger ? 'danger' : ''}">${escapeHtml(confirmText)}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const cleanup = () => overlay.remove();
+
+    overlay.querySelector('#btn-confirm-cancel')?.addEventListener('click', () => {
+      cleanup();
+      resolve(false);
+    });
+
+    overlay.querySelector('#btn-confirm-ok')?.addEventListener('click', () => {
+      cleanup();
+      resolve(true);
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        resolve(false);
+      }
+    });
+
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        cleanup();
+        resolve(true);
+      } else if (e.key === 'Escape') {
+        cleanup();
+        resolve(false);
+      }
+    });
+
+    // Focus cancel button by default for danger dialogs to avoid accidental triggers
+    const defaultFocusBtn = isDanger
+      ? overlay.querySelector<HTMLButtonElement>('#btn-confirm-cancel')
+      : overlay.querySelector<HTMLButtonElement>('#btn-confirm-ok');
+    defaultFocusBtn?.focus();
+  });
+}
+
+/**
+ * Escapes characters that have special meaning in HTML.
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}

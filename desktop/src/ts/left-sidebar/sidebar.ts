@@ -2,9 +2,19 @@
 
 import { openDocument } from '../main-content/canvas/editor.js';
 import { appState } from '../shared/state.js';
+import { showRecentItemContextMenu } from './context-menu.js';
 import { showCreateDocumentDialog } from './dialog.js';
-import { listDocumentsIpc, removeRecentDocIpc } from './ipc.js';
+import { listDocumentsIpc } from './ipc.js';
+import {
+  initProjects,
+  refreshProjects,
+  renderProjectsSection,
+  setProjectsSearchFilter,
+  triggerOpenProjectPicker,
+} from './projects.js';
 import { DocumentType, RecentDoc } from './types.js';
+
+export { refreshProjects, renderProjectsSection, triggerOpenProjectPicker };
 
 let allDocuments: RecentDoc[] = [];
 let searchQuery = '';
@@ -16,6 +26,9 @@ export function initSidebar(): void {
   setupSectionToggles();
   setupSettingsButton();
   setupSidebarResize();
+
+  // Initialize the projects workspace subsystem
+  initProjects();
 
   // Initial load of documents from history
   refreshDocuments();
@@ -31,6 +44,8 @@ function setupSidebarCollapse(): void {
   const update = () => {
     const isOpen = appState.getSidebarOpen();
     sidebar.classList.toggle('collapsed', !isOpen);
+    renderDocuments();
+    renderProjectsSection();
   };
 
   update();
@@ -83,6 +98,7 @@ function setupSidebarSearch(): void {
     searchQuery = searchInput.value.trim().toLowerCase();
     clearBtn?.classList.toggle('visible', searchQuery.length > 0);
     renderDocuments();
+    setProjectsSearchFilter(searchQuery);
   });
 
   clearBtn?.addEventListener('click', () => {
@@ -91,6 +107,7 @@ function setupSidebarSearch(): void {
       searchQuery = '';
       clearBtn.classList.remove('visible');
       renderDocuments();
+      setProjectsSearchFilter('');
       searchInput.focus();
     }
   });
@@ -198,29 +215,24 @@ function createDocElement(doc: RecentDoc, isActive: boolean): HTMLElement {
       ${iconSvg}
       <span class="doc-title-text">${escapeHtml(doc.name)}</span>
     </div>
-    <div class="doc-item-actions">
-      <button class="item-action-btn delete" title="Remove from recent files">
-        <span class="ui-icon icon-sidebar-trash"></span>
-      </button>
-    </div>
+    <button class="item-more-btn" title="Options">
+      <span class="ui-icon icon-sidebar-more-vertical"></span>
+    </button>
   `;
 
-  // Select document on click
+  // Select document on click (ignore if more-options button was clicked)
   div.addEventListener('click', async (e) => {
-    if ((e.target as HTMLElement).closest('.item-action-btn')) return;
+    if ((e.target as HTMLElement).closest('.item-more-btn')) return;
     await selectDocument(doc);
   });
 
-  // Delete / Remove from history button
-  const deleteBtn = div.querySelector('.item-action-btn.delete');
-  deleteBtn?.addEventListener('click', async (e) => {
+  // Options context menu trigger
+  const moreBtn = div.querySelector<HTMLButtonElement>('.item-more-btn');
+  moreBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
-    try {
-      await removeRecentDocIpc(doc.path);
+    showRecentItemContextMenu(moreBtn, doc, async () => {
       await refreshDocuments();
-    } catch (err) {
-      console.error('Failed to remove recent file:', err);
-    }
+    });
   });
 
   return div;
@@ -233,6 +245,7 @@ async function selectDocument(doc: RecentDoc): Promise<void> {
   const success = await openDocument(doc.path, doc.name, doc.is_dybuk);
   if (success) {
     renderDocuments();
+    renderProjectsSection();
   }
 }
 

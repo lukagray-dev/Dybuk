@@ -2,7 +2,7 @@
 // Manages File, View, Window, Help menus, and state-aware item activation
 
 import { showCreateDocumentDialog } from '../left-sidebar/dialog.js';
-import { refreshDocuments } from '../left-sidebar/sidebar.js';
+import { refreshDocuments, triggerOpenProjectPicker } from '../left-sidebar/sidebar.js';
 import { lockActiveDocument, openDocument, saveActiveDocument } from '../main-content/canvas/editor.js';
 import { invokeIpc } from '../shared/ipc.js';
 import { appState } from '../shared/state.js';
@@ -62,6 +62,15 @@ export function setupMenus(): void {
     }
   });
 
+  // Global keyboard shortcuts for menu items
+  window.addEventListener('keydown', async (e) => {
+    // Ctrl+Shift+O: Open Project Folder
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'O' || e.key === 'o')) {
+      e.preventDefault();
+      await triggerOpenProjectPicker();
+    }
+  });
+
   // Wire specific menu actions
   setupFilesMenuActions();
   setupViewMenuActions();
@@ -110,6 +119,16 @@ function setupFilesMenuActions(): void {
       }
     } catch (err) {
       console.error('Failed to open file dialog:', err);
+    }
+  });
+
+  // Open Project (via native desktop folder picker dialog)
+  document.getElementById('menu-item-open-project')?.addEventListener('click', async () => {
+    appState.setActiveMenu(null);
+    try {
+      await triggerOpenProjectPicker();
+    } catch (err) {
+      console.error('Failed to open project picker dialog:', err);
     }
   });
 

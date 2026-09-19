@@ -325,6 +325,259 @@
   background-color: var(--danger-red);
 }
 
+/* Header Section Action Button (e.g. + Add Folder) */
+.section-action-btn {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  opacity: 0.6;
+  transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+.section-action-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.section-action-btn .ui-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Project Item Tree & Sub-sections */
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.project-header {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.project-header:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.project-header.active {
+  background-color: #242424;
+  color: var(--text-primary);
+}
+
+.session-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.session-title-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-header .btn-proj-new-doc,
+.project-header .btn-proj-delete {
+  opacity: 0;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+.project-header:hover .btn-proj-new-doc,
+.project-header:hover .btn-proj-delete {
+  opacity: 0.6;
+}
+
+.project-header .btn-proj-new-doc:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.project-header .btn-proj-delete:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.project-header .btn-proj-delete:hover .ui-icon {
+  background-color: var(--danger-red);
+}
+
+/* Floating Project New Document Dropdown */
+.project-new-dropdown {
+  position: fixed;
+  z-index: 10000;
+  background: var(--dropdown-surface);
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--dropdown-radius);
+  box-shadow: var(--dropdown-shadow);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 195px;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: dialog-pop-in 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Three Dots Button on Document Items (Projects & Recents) */
+.item-more-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 2px 4px;
+  opacity: 0.65;
+  transition: opacity 0.1s ease, background-color 0.1s ease;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-item:hover .item-more-btn,
+.doc-item.active .item-more-btn,
+.item-more-btn.active {
+  display: flex;
+}
+
+.item-more-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.item-more-btn:hover .ui-icon {
+  background-color: var(--text-primary);
+}
+
+.item-more-btn .ui-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Floating Document Context Menu */
+.session-context-menu {
+  position: fixed;
+  z-index: 10000;
+  background: var(--dropdown-surface);
+  border: 1px solid var(--dropdown-border);
+  border-radius: var(--dropdown-radius);
+  box-shadow: var(--dropdown-shadow);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 175px;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: dialog-pop-in 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-family);
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.context-menu-item:hover {
+  background-color: var(--dropdown-surface-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary);
+}
+
+.context-menu-item:hover .ui-icon {
+  background-color: var(--text-primary);
+}
+
+.context-menu-item.danger {
+  color: var(--danger-red);
+}
+
+.context-menu-item.danger .ui-icon {
+  background-color: var(--danger-red);
+}
+
+.context-menu-item.danger:hover {
+  background-color: rgba(229, 77, 46, 0.15);
+  color: #ff6b6b;
+}
+
+.context-menu-item.danger:hover .ui-icon {
+  background-color: #ff6b6b;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--dropdown-separator, rgba(255, 255, 255, 0.08));
+  margin: 3px 0;
+}
+
+
+.proj-chevron {
+  width: 10px !important;
+  height: 10px !important;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.project-card.collapsed .proj-chevron {
+  transform: rotate(-90deg);
+}
+
+.project-card.collapsed .project-files {
+  display: none;
+}
+
+.project-files {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  margin-left: 14px;
+}
+
 /* Bottom Section */
 .sidebar-bottom {
   padding: 8px;
@@ -397,6 +650,56 @@
 .icon-sidebar-trash {
   -webkit-mask-image: url('../../assets/icons/sidebar/trash.svg');
   mask-image: url('../../assets/icons/sidebar/trash.svg');
+}
+
+.icon-sidebar-projects {
+  -webkit-mask-image: url('../../assets/icons/sidebar/projects.svg');
+  mask-image: url('../../assets/icons/sidebar/projects.svg');
+}
+
+.icon-sidebar-folder {
+  -webkit-mask-image: url('../../assets/icons/sidebar/folder.svg');
+  mask-image: url('../../assets/icons/sidebar/folder.svg');
+}
+
+.icon-sidebar-folder-input {
+  -webkit-mask-image: url('../../assets/icons/sidebar/folder-input.svg');
+  mask-image: url('../../assets/icons/sidebar/folder-input.svg');
+}
+
+.icon-sidebar-more-vertical {
+  -webkit-mask-image: url('../../assets/icons/sidebar/more-vertical.svg');
+  mask-image: url('../../assets/icons/sidebar/more-vertical.svg');
+}
+
+.icon-sidebar-copy {
+  -webkit-mask-image: url('../../assets/icons/main-content/copy.svg');
+  mask-image: url('../../assets/icons/main-content/copy.svg');
+}
+
+.sidebar-section .ui-icon,
+.project-card .ui-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background-color: var(--text-muted);
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  flex-shrink: 0;
+  transition: background-color 0.12s ease;
+}
+
+.section-header:hover .ui-icon,
+.project-header:hover .ui-icon {
+  background-color: var(--text-secondary);
+}
+
+.project-header.active .ui-icon {
+  background-color: var(--text-primary);
 }
 
 /* Creation Modal Form Styles */
